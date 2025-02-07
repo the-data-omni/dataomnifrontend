@@ -73,7 +73,7 @@
     "sonner": "1.7.1",
     "stylis": "4.3.4",
     "stylis-plugin-rtl": "2.1.1",
-    "vite": "6.0.7",
+    "vite": "6.1.0",
     "zod": "3.24.1"
   },
   "devDependencies": {
