@@ -30,3 +30,10 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# firebase
+.firebase
+.firebaserc
+firebase.json
+
+
