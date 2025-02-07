@@ -19,7 +19,7 @@ export interface AppConfig {
 }
 
 export const appConfig: AppConfig = {
-	name: "Devias Kit Pro",
+	name: "The Data Omni",
 	description: "",
 	direction: "ltr",
 	language: "en",

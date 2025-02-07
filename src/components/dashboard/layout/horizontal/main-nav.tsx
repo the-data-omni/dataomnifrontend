@@ -42,7 +42,7 @@ import { MobileNav } from "../mobile-nav";
 import { icons } from "../nav-icons";
 import { NotificationsPopover } from "../notifications-popover";
 import { UserPopover } from "../user-popover/user-popover";
-import { WorkspacesSwitch } from "../workspaces-switch";
+import { SchemaSwitch } from "../workspaces-switch";
 import { navColorStyles } from "./styles";
 
 const logoColors = {
@@ -102,7 +102,7 @@ export function MainNav({ color = "evident", items = [] }: MainNavProps): React.
 							<Logo color={logoColor} height={32} width={122} />
 						</Box>
 						<Box sx={{ display: { xs: "none", md: "block" } }}>
-							<WorkspacesSwitch />
+							<SchemaSwitch />
 						</Box>
 					</Stack>
 					<Stack

@@ -18,7 +18,7 @@ import { RouterLink } from "@/components/core/link";
 import { Logo } from "@/components/core/logo";
 
 import { icons } from "./nav-icons";
-import { WorkspacesSwitch } from "./workspaces-switch";
+import { SchemaSwitch } from "./workspaces-switch";
 
 export interface MobileNavProps {
 	onClose?: () => void;
@@ -72,7 +72,7 @@ export function MobileNav({ items = [], open, onClose }: MobileNavProps): React.
 						<Logo color="light" height={32} width={122} />
 					</Box>
 				</div>
-				<WorkspacesSwitch />
+				<SchemaSwitch />
 			</Stack>
 			<Box component="nav" sx={{ flex: "1 1 auto", p: 2 }}>
 				{renderNavGroups({ items, onClose, pathname })}

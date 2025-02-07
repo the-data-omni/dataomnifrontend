@@ -24,6 +24,11 @@ import { Rtl } from "@/components/core/rtl";
 import { SettingsButton } from "@/components/core/settings/settings-button";
 import { SettingsProvider } from "@/components/core/settings/settings-context";
 import { Toaster } from "@/components/core/toaster";
+import { ReactQueryProvider } from '@/lib/ReactQueryProvider';
+
+// Import the ScoreProvider
+import { ScoreProvider } from '@/hooks/utils/score_context';
+import { SchemaProvider } from  '@/components/dashboard/layout/SchemaContext';
 
 const metadata = { title: appConfig.name } satisfies Metadata;
 
@@ -76,7 +81,13 @@ export function Root({ children }: RootProps): React.JSX.Element {
 							<I18nProvider>
 								<Rtl>
 									<ThemeProvider>
+									<ReactQueryProvider>
+                      <SchemaProvider>
+                      <ScoreProvider>
 										{children}
+										</ScoreProvider>
+                      </SchemaProvider>
+                    </ReactQueryProvider>
 										<SettingsButton />
 										<Toaster position="bottom-right" />
 									</ThemeProvider>

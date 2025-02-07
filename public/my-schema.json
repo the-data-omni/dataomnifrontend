@@ -1,0 +1,618 @@
+[
+    {
+      "table_name": "recharge__billing_history",
+      "table_link": "https://fivetran.github.io/dbt_recharge/#!/model/model.recharge.recharge__billing_history",
+      "description": "Each record represents an order, enriched with metrics about related charges and line items. Line items are aggregated at the billing (order) level.",
+      "relation": "postgres.zz_recharge_recharge.recharge__billing_history",
+      "table_description": "Each record represents an order, enriched with metrics about related charges and line items.",
+      "columns": [
+        {
+          "column_name": "order_id",
+          "description": "The unique identifier of the order."
+        },
+        {
+          "column_name": "external_order_id_ecommerce",
+          "description": "The ID for the order in your external ecommerce platform."
+        },
+        {
+          "column_name": "external_order_number_ecommerce",
+          "description": "The order number in your external ecommerce platform."
+        },
+        {
+          "column_name": "customer_id",
+          "description": "Unique numeric identifier for the customer associated with the order."
+        },
+        {
+          "column_name": "email",
+          "description": "The email address of the customer."
+        },
+        {
+          "column_name": "order_created_at",
+          "description": "The date and time the order was created."
+        },
+        {
+          "column_name": "order_status",
+          "description": "The status of the order. Possible values are SUCCESS, ERROR, QUEUED, CANCELLED."
+        },
+        {
+          "column_name": "order_updated_at",
+          "description": "The date and time the order was last updated."
+        },
+        {
+          "column_name": "charge_id",
+          "description": "The unique identifier of the charge."
+        },
+        {
+          "column_name": "transaction_id",
+          "description": "The unique identifier of the transaction."
+        },
+        {
+          "column_name": "charge_status",
+          "description": "The status of the charge. Possible values are SUCCESS, ERROR, QUEUED, SKIPPED, REFUNDED, PARTIALLY_REFUNDED."
+        },
+        {
+          "column_name": "is_prepaid",
+          "description": "Boolean indicating if the Order is prepaid."
+        },
+        {
+          "column_name": "order_total_price",
+          "description": "The total amount due of the order."
+        },
+        {
+          "column_name": "order_type",
+          "description": "Possible values are CHECKOUT, RECURRING."
+        },
+        {
+          "column_name": "order_processed_at",
+          "description": "The date and time the order was processed."
+        },
+        {
+          "column_name": "order_scheduled_at",
+          "description": "The date time of when the associated order is/was scheduled to process."
+        },
+        {
+          "column_name": "order_shipped_date",
+          "description": "The date and time the order was shipped."
+        },
+        {
+          "column_name": "address_id",
+          "description": "The unique identifier of the address."
+        },
+        {
+          "column_name": "is_deleted",
+          "description": "Boolean indicating if the order (record) is deleted."
+        },
+        {
+          "column_name": "charge_created_at",
+          "description": "The date and time the charge was created."
+        },
+        {
+          "column_name": "payment_processor",
+          "description": "The name of the payment processor."
+        },
+        {
+          "column_name": "tags",
+          "description": "A comma-separated list of tags on the charge."
+        },
+        {
+          "column_name": "orders_count",
+          "description": "The number of orders generated from this charge (Will be >1 for prepaid)."
+        },
+        {
+          "column_name": "charge_type",
+          "description": "Possible values are CHECKOUT, RECURRING."
+        },
+        {
+          "column_name": "charge_total_price",
+          "description": "The total amount due of the charge."
+        },
+        {
+          "column_name": "calculated_order_total_price",
+          "description": "The charge_total_price divided equally amongst all orders stemming from the same charge"
+        },
+        {
+          "column_name": "charge_subtotal_price",
+          "description": "The combined price of all charge line_items minus any discounts. Does not include taxes and shipping."
+        },
+        {
+          "column_name": "calculated_order_subtotal_price",
+          "description": "The charge_subtotal_price divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "charge_tax_lines",
+          "description": "The tax lines associated with the charge."
+        },
+        {
+          "column_name": "calculated_order_tax_lines",
+          "description": "The charge_tax_lines divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "charge_total_discounts",
+          "description": "The sum of the discounts applied to the charge."
+        },
+        {
+          "column_name": "calculated_order_total_discounts",
+          "description": "The charge_total_discounts divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "charge_total_refunds",
+          "description": "The sum of all refunds that were applied to the charge."
+        },
+        {
+          "column_name": "calculated_order_total_refunds",
+          "description": "The charge_total_refunds divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "charge_total_tax",
+          "description": "The total tax due associated with the charge."
+        },
+        {
+          "column_name": "calculated_order_total_tax",
+          "description": "The charge_total_tax divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "charge_total_weight_grams",
+          "description": "The total weight of all items in the charge in grams."
+        },
+        {
+          "column_name": "calculated_order_total_weight_grams",
+          "description": "The charge_total_weight_grams divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "charge_total_shipping",
+          "description": "The total shipping costs associated with the charge."
+        },
+        {
+          "column_name": "calculated_order_total_shipping",
+          "description": "The charge_total_shipping divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "order_item_quantity",
+          "description": "The total number of items in the order."
+        },
+        {
+          "column_name": "order_line_item_total",
+          "description": "The total price of all line items in the order. Does not include discounts, shipping, or tax."
+        },
+        {
+          "column_name": "total_net_charge_value",
+          "description": "The total net value of the charge, calculated as the total price minus total discounts."
+        },
+        {
+          "column_name": "total_calculated_net_order_value",
+          "description": "The total_net_charge_value divided equally amongst all orders stemming from the same charge."
+        }
+      ]
+    },
+    {
+      "table_name": "recharge__charge_line_item_history",
+      "table_link": "https://fivetran.github.io/dbt_recharge/#!/model/model.recharge.recharge__charge_line_item_history",
+      "description": "Each record represents a specific line item charge, refund, or other line item that accumulates into final charges.",
+      "relation": "postgres.zz_recharge_recharge.recharge__charge_line_item_history",
+      "table_description": "Each record represents a specific line item charge, refund, or other line item that accumulates into final charges.",
+      "columns": [
+        {
+          "column_name": "charge_id",
+          "description": "The unique identifier of the charge."
+        },
+        {
+          "column_name": "charge_row_num",
+          "description": "Unique row number assigned to line items with the same charge_id."
+        },
+        {
+          "column_name": "source_index",
+          "description": "The line item's primary key index carried over from its source."
+        },
+        {
+          "column_name": "charge_created_at",
+          "description": "The date and time the charge was created."
+        },
+        {
+          "column_name": "customer_id",
+          "description": "The unique identifier of the customer."
+        },
+        {
+          "column_name": "address_id",
+          "description": "The unique identifier of the address."
+        },
+        {
+          "column_name": "amount",
+          "description": "The amount charged for the line item."
+        },
+        {
+          "column_name": "title",
+          "description": "The title of the line item."
+        },
+        {
+          "column_name": "line_item_type",
+          "description": "The type of the line item. Possible values are (charge line, discount, shipping, tax, or refund)."
+        }
+      ]
+    },
+    {
+      "table_name": "recharge__customer_daily_rollup",
+      "table_link": "https://fivetran.github.io/dbt_recharge/#!/model/model.recharge.recharge__customer_daily_rollup",
+      "description": "Each record provides totals and running totals for a customer's associated transactions for the specified day.",
+      "relation": "postgres.zz_recharge_recharge.recharge__customer_daily_rollup",
+      "table_description": "Each record provides totals and running totals for a customer's associated transaction for the specified day.",
+      "columns": [
+        {
+          "column_name": "customer_id",
+          "description": "The unique identifier of the customer."
+        },
+        {
+          "column_name": "date_day",
+          "description": "Day the metrics were calculated."
+        },
+        {
+          "column_name": "date_week",
+          "description": "Week the metrics were calculated."
+        },
+        {
+          "column_name": "date_month",
+          "description": "Month the metrics were calculated."
+        },
+        {
+          "column_name": "date_year",
+          "description": "Year the metrics were calculated."
+        },
+        {
+          "column_name": "no_of_orders",
+          "description": "The number of orders for the customer on the given day."
+        },
+        {
+          "column_name": "recurring_orders",
+          "description": "The number of subscriptions created for the customer on the given day."
+        },
+        {
+          "column_name": "one_time_orders",
+          "description": "The number of one-time orders for the customer on the given day."
+        },
+        {
+          "column_name": "total_charges",
+          "description": "The total amount charges associated with the customer on the given day."
+        },
+        {
+          "column_name": "charge_total_price_realized",
+          "description": "Total price for successful orders by the customer on the given day."
+        },
+        {
+          "column_name": "charge_total_discounts_realized",
+          "description": "Total discounts for successful orders by the customer on the given day."
+        },
+        {
+          "column_name": "charge_total_tax_realized",
+          "description": "Total tax for successful orders by the customer on the given day."
+        },
+        {
+          "column_name": "charge_total_refunds_realized",
+          "description": "Total refunds for successful orders by the customer on the given day."
+        },
+        {
+          "column_name": "calculated_order_total_discounts_realized",
+          "description": "The charge_total_discounts_realized divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "calculated_order_total_tax_realized",
+          "description": "The charge_total_tax_realized divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "calculated_order_total_price_realized",
+          "description": "The charge_total_price_realized divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "calculated_order_total_refunds_realized",
+          "description": "The charge_total_refunds_realized divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "order_line_item_total_realized",
+          "description": "Order line item total for successful orders by the customer on the given day."
+        },
+        {
+          "column_name": "order_item_quantity_realized",
+          "description": "Total number of items successfully ordered by the customer on the given day."
+        },
+        {
+          "column_name": "charge_recurring_net_amount_realized",
+          "description": "The total net value of recurring charges, calculated as the total price minus total discounts."
+        },
+        {
+          "column_name": "charge_one_time_net_amount_realized",
+          "description": "The total net value of one-time charges, calculated as the total price minus total discounts."
+        },
+        {
+          "column_name": "calculated_order_recurring_net_amount_realized",
+          "description": "The charge_recurring_net_amount_realized divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "calculated_order_one_time_net_amount_realized",
+          "description": "The charge_one_time_net_amount_realized divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "charge_total_price_running_total",
+          "description": "Running total of price for successful orders by the customer."
+        },
+        {
+          "column_name": "charge_total_discounts_running_total",
+          "description": "Running total of discounts for successful orders by the customer."
+        },
+        {
+          "column_name": "charge_total_tax_running_total",
+          "description": "Running total of tax for successful orders by the customer."
+        },
+        {
+          "column_name": "charge_total_refunds_running_total",
+          "description": "Running total of refunds for successful orders by the customer."
+        },
+        {
+          "column_name": "calculated_order_total_discounts_running_total",
+          "description": "The charge_total_discounts_running_total divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "calculated_order_total_tax_running_total",
+          "description": "The charge_total_tax_running_total divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "calculated_order_total_price_running_total",
+          "description": "The charge_total_price_running_total divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "calculated_order_total_refunds_running_total",
+          "description": "The charge_total_refunds_running_total divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "order_line_item_total_running_total",
+          "description": "Order line item running total for successful orders by the customer."
+        },
+        {
+          "column_name": "order_item_quantity_running_total",
+          "description": "Running total of items successfully ordered by the customer."
+        },
+        {
+          "column_name": "charge_recurring_net_amount_running_total",
+          "description": "Running total of the net value of recurring charges."
+        },
+        {
+          "column_name": "charge_one_time_net_amount_running_total",
+          "description": "Running total of the net value of one-time charges."
+        },
+        {
+          "column_name": "calculated_order_recurring_net_amount_running_total",
+          "description": "Running total of the net value of the calculated recurring order amount."
+        },
+        {
+          "column_name": "calculated_order_one_time_net_amount_running_total",
+          "description": "Running total of the net value of the calculated one-time order amount."
+        },
+        {
+          "column_name": "active_months_to_date",
+          "description": "The number of months the customer has been active up to the given day."
+        }
+      ]
+    },
+    {
+      "table_name": "recharge__customer_details",
+      "table_link": "https://fivetran.github.io/dbt_recharge/#!/model/model.recharge.recharge__customer_details",
+      "description": "Each record represents a customer, enriched with metrics about their associated transactions.",
+      "relation": "postgres.zz_recharge_recharge.recharge__customer_details",
+      "table_description": "Each record represents a customer, enriched with metrics about their associated transactions.",
+      "columns": [
+        {
+          "column_name": "customer_id",
+          "description": "The unique identifier of the customer."
+        },
+        {
+          "column_name": "customer_hash",
+          "description": "The unique string identifier used in a customer portal link."
+        },
+        {
+          "column_name": "external_customer_id_ecommerce",
+          "description": "The ID for the customer in your external ecommerce platform."
+        },
+        {
+          "column_name": "email",
+          "description": "The email address of the customer."
+        },
+        {
+          "column_name": "first_name",
+          "description": "The customer's first name."
+        },
+        {
+          "column_name": "last_name",
+          "description": "The customer's last name."
+        },
+        {
+          "column_name": "customer_created_at",
+          "description": "The date and time the customer was created."
+        },
+        {
+          "column_name": "customer_updated_at",
+          "description": "The date and time the customer was last updated."
+        },
+        {
+          "column_name": "first_charge_processed_at",
+          "description": "The date and time of the customer's first processed charge."
+        },
+        {
+          "column_name": "subscriptions_active_count",
+          "description": "The number of active subscriptions associated with the customer."
+        },
+        {
+          "column_name": "subscriptions_total_count",
+          "description": "The total number of subscriptions associated with the customer."
+        },
+        {
+          "column_name": "has_valid_payment_method",
+          "description": "Boolean indicating if the payment value is valid."
+        },
+        {
+          "column_name": "has_payment_method_in_dunning",
+          "description": "Boolean indicating if the customer has a credit card in dunning."
+        },
+        {
+          "column_name": "tax_exempt",
+          "description": "Boolean indicating if the customer is tax exempt."
+        },
+        {
+          "column_name": "billing_first_name",
+          "description": ""
+        },
+        {
+          "column_name": "billing_last_name",
+          "description": ""
+        },
+        {
+          "column_name": "billing_company",
+          "description": ""
+        },
+        {
+          "column_name": "billing_city",
+          "description": ""
+        },
+        {
+          "column_name": "billing_country",
+          "description": ""
+        },
+        {
+          "column_name": "total_orders",
+          "description": "The total number of orders associated with the customer."
+        },
+        {
+          "column_name": "total_amount_ordered",
+          "description": "The total amount associated with the customer."
+        },
+        {
+          "column_name": "avg_order_amount",
+          "description": "The average order amount for the customer."
+        },
+        {
+          "column_name": "total_order_line_item_total",
+          "description": "The total price of all line items in the customer's orders."
+        },
+        {
+          "column_name": "avg_order_line_item_total",
+          "description": "The average price of line items in the customer's orders."
+        },
+        {
+          "column_name": "avg_item_quantity_per_order",
+          "description": "The average quantity of items per order for the customer."
+        },
+        {
+          "column_name": "total_amount_charged",
+          "description": "The total amount charged to the customer."
+        },
+        {
+          "column_name": "avg_amount_charged",
+          "description": "The average amount charged to the customer."
+        },
+        {
+          "column_name": "charges_count",
+          "description": "The total number of charges made to the customer."
+        },
+        {
+          "column_name": "total_amount_taxed",
+          "description": "The total amount of tax applied to the customer's orders."
+        },
+        {
+          "column_name": "total_amount_discounted",
+          "description": "The total amount of discounts applied to the customer's orders."
+        },
+        {
+          "column_name": "total_refunds",
+          "description": "The total refunds issued for the customer."
+        },
+        {
+          "column_name": "total_one_time_purchases",
+          "description": "The total number of one-time purchases made by the customer."
+        },
+        {
+          "column_name": "total_net_spend",
+          "description": "The total net spend of the customer, calculated as the total amount charged minus total refunds."
+        },
+        {
+          "column_name": "calculated_subscriptions_active_count",
+          "description": "The number of active subscriptions for the customer, calculated as the sum of subscriptions with status ACTIVE.  Note - this value may differ from the Recharge-provided subscriptions_active_count. See DECISIONLOG for more information."
+        },
+        {
+          "column_name": "is_currently_subscribed",
+          "description": "Indicates whether the customer currently has an active subscription."
+        },
+        {
+          "column_name": "is_new_customer",
+          "description": "Indicates whether the customer has made their first charge in the past 30 days."
+        },
+        {
+          "column_name": "active_months",
+          "description": "The number of months since making their first charge."
+        },
+        {
+          "column_name": "orders_monthly_average",
+          "description": "The monthly average number of orders placed by the customer."
+        },
+        {
+          "column_name": "amount_ordered_monthly_average",
+          "description": "The monthly average amount ordered by the customer."
+        },
+        {
+          "column_name": "one_time_purchases_monthly_average",
+          "description": "The monthly average number of one-time purchases made by the customer."
+        },
+        {
+          "column_name": "amount_charged_monthly_average",
+          "description": "The monthly average amount charged to the customer."
+        },
+        {
+          "column_name": "amount_discounted_monthly_average",
+          "description": "The monthly average amount discounted for the customer."
+        },
+        {
+          "column_name": "amount_taxed_monthly_average",
+          "description": "The monthly average amount taxed for the customer."
+        },
+        {
+          "column_name": "net_spend_monthly_average",
+          "description": "The monthly average net spend of the customer, calculated as the total amount charged minus total refunds, divided by the number of months since the first charge."
+        }
+      ]
+    },
+    {
+      "table_name": "recharge__monthly_recurring_revenue",
+      "table_link": "https://fivetran.github.io/dbt_recharge/#!/model/model.recharge.recharge__monthly_recurring_revenue",
+      "description": "Each record represents a customer, MRR, and non-MRR generated on a monthly basis.",
+      "relation": "postgres.zz_recharge_recharge.recharge__monthly_recurring_revenue",
+      "table_description": "Each record represents a customer, MRR, and non-MRR generated on a monthly basis.",
+      "columns": [
+        {
+          "column_name": "date_month",
+          "description": "Month the metrics were calculated."
+        },
+        {
+          "column_name": "customer_id",
+          "description": "The unique identifier of the customer."
+        },
+        {
+          "column_name": "recurring_orders",
+          "description": "The number of successful recurring orders counted in the month."
+        },
+        {
+          "column_name": "total_net_recurring_charges",
+          "description": "The current net monthly recurring revenue for the customer based on charges, taking into account discounts and refunds."
+        },
+        {
+          "column_name": "calculated_net_order_mrr",
+          "description": "The current net monthly recurring revenue for the customer based on orders, taking into account discounts and refunds. This is the recurring charges divided equally amongst all orders stemming from the same charge."
+        },
+        {
+          "column_name": "one_time_orders",
+          "description": "The number of successful one-time orders counted in the month."
+        },
+        {
+          "column_name": "total_net_one_time_charges",
+          "description": "The current net monthly one-time revenue for the customer based on charges, taking into account discounts and refunds."
+        },
+        {
+          "column_name": "calculated_net_order_one_times",
+          "description": "The current net monthly one-time revenue for the customer based on orders, taking into account discounts and refunds. This is the one-time charges divided equally amongst all orders stemming from the same charge."
+        }
+      ]
+    }]

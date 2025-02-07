@@ -26,7 +26,7 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
 			<div>
 				<MainNav />
 				<main>{children}</main>
-				<Footer />
+				{/* <Footer /> */}
 			</div>
 		</React.Fragment>
 	);

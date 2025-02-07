@@ -16,10 +16,10 @@ import { RouterLink } from "@/components/core/link";
 export function Hero(): React.JSX.Element {
 	const { colorScheme } = useColorScheme();
   
-	const [img, setImg] = React.useState<string>('/assets/home-hero-light.png');
+	const [img, setImg] = React.useState<string>('/assets/dashboard-light-small.png');
   
 	React.useEffect(() => {
-	  setImg(colorScheme === 'dark' ? '/assets/home-hero-dark.png' : '/assets/home-hero-light.png');
+	  setImg(colorScheme === 'dark' ? '/assets/dashboard-dark-small.png' : '/assets/dashboard-light-small.png');
 	}, [colorScheme]);
   
 	return (
@@ -79,7 +79,7 @@ export function Hero(): React.JSX.Element {
 			  </Typography>
 			</Stack>
 			<Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
-			  <Button component={RouterLink} href={paths.dashboard.overview} variant="contained">
+			  <Button component={RouterLink} href={paths.dashboard.analytics} variant="contained">
 				Dashboard
 			  </Button>
 			  {/* <Button

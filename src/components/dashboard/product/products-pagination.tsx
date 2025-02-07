@@ -12,7 +12,7 @@ interface ProductsPaginationProps {
 	page: number;
 }
 
-export function ProductsPagination({ count, page }: ProductsPaginationProps): React.JSX.Element {
+export function QueriesPagination({ count, page }: ProductsPaginationProps): React.JSX.Element {
 	// You should implement the pagination using a similar logic as the filters.
 	// Note that when page change, you should keep the filter search params.
 

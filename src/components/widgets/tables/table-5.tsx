@@ -1,223 +1,315 @@
-"use client";
+'use client';
 
-import type * as React from "react";
-import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
-import Link from "@mui/material/Link";
-import OutlinedInput from "@mui/material/OutlinedInput";
-import Select from "@mui/material/Select";
-import Stack from "@mui/material/Stack";
-import Switch from "@mui/material/Switch";
-import Typography from "@mui/material/Typography";
-import { Image as ImageIcon } from "@phosphor-icons/react/dist/ssr/Image";
-import { MagnifyingGlass as MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
-import { PencilSimple as PencilSimpleIcon } from "@phosphor-icons/react/dist/ssr/PencilSimple";
+import * as React from 'react';
+import {
+  Box,
+  Card,
+  Chip,
+  Divider,
+  FormControlLabel,
+  IconButton,
+  InputAdornment,
+  Link,
+  OutlinedInput,
+  Select,
+  Stack,
+  Switch,
+  Typography,
+  Menu,
+  MenuItem,
+  Checkbox,
+  ListItemIcon,
+  ListItemText,
+} from '@mui/material';
+import { MagnifyingGlass, PencilSimple } from '@phosphor-icons/react';
 
-import { DataTable } from "@/components/core/data-table";
-import type { ColumnDef } from "@/components/core/data-table";
-import { Option } from "@/components/core/option";
+import { DataTable } from '@/components/core/data-table';
+import type { ColumnDef } from '@/components/core/data-table';
+import { Option } from '@/components/core/option';
 
-interface Product {
-	id: string;
-	name: string;
-	image: string | null;
-	category: string;
-	tags: string;
-	availability: "in_stock" | "limited" | "out_of_stock";
-	quantity: number;
-	currency: string;
-	price: number;
-}
+// Pagination from MUI
+import TablePagination from '@mui/material/TablePagination';
 
-const products = [
-	{
-		id: "PRD-004",
-		name: "Necessaire Body Lotion",
-		image: "/assets/product-4.png",
-		category: "Skincare",
-		tags: "Lotion, Vegan, Hypoallergenic",
-		availability: "limited",
-		quantity: 5,
-		currency: "USD",
-		price: 17.99,
-	},
-	{
-		id: "PRD-003",
-		name: "Ritual of Sakura",
-		image: "/assets/product-3.png",
-		category: "Skincare",
-		tags: "Cream, Dry skin, Moisturizer",
-		availability: "in_stock",
-		quantity: 8,
-		currency: "USD",
-		price: 155,
-	},
-	{
-		id: "PRD-002",
-		name: "Lancome Rouge",
-		image: "/assets/product-2.png",
-		category: "Makeup",
-		tags: "Lipstick, Red, Matte",
-		availability: "out_of_stock",
-		quantity: 0,
-		currency: "USD",
-		price: 95,
-	},
-	{
-		id: "PRD-001",
-		name: "Erbology Aloe Vera",
-		image: "/assets/product-1.png",
-		category: "Healthcare",
-		tags: "Natural, Eco-Friendly, Vegan",
-		availability: "in_stock",
-		quantity: 10,
-		currency: "USD",
-		price: 24,
-	},
-] satisfies Product[];
+// Context + Hook
+import { SchemaContext } from '@/components/dashboard/layout/SchemaContext';
+import { useFlattenedFields } from '@/hooks/utils/useFlattenedFields';
+import type { FlattenedField } from '@/hooks/utils/types';
 
-const columns = [
-	{
-		formatter: (row): React.JSX.Element => (
-			<Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-				{row.image ? (
-					<Box
-						sx={{
-							alignItems: "center",
-							bgcolor: "var(--mui-palette-background-level2)",
-							backgroundImage: `url(${row.image})`,
-							backgroundPosition: "center",
-							backgroundSize: "cover",
-							borderRadius: 1,
-							display: "flex",
-							height: "80px",
-							justifyContent: "center",
-							overflow: "hidden",
-							width: "80px",
-						}}
-					/>
-				) : (
-					<Box
-						sx={{
-							alignItems: "center",
-							bgcolor: "var(--mui-palette-background-level2)",
-							borderRadius: 1,
-							display: "flex",
-							height: "80px",
-							justifyContent: "center",
-							width: "80px",
-						}}
-					>
-						<ImageIcon fontSize="var(--icon-fontSize-lg)" />
-					</Box>
-				)}
-				<div>
-					<Link color="text.primary" sx={{ whiteSpace: "nowrap" }} underline="none" variant="subtitle2">
-						{row.name}
-					</Link>
-					<Typography color="text.secondary" variant="body2">
-						in {row.category}
-					</Typography>
-				</div>
-			</Stack>
-		),
-		name: "Name",
-		width: "300px",
-	},
-	{
-		formatter: (row): React.JSX.Element => {
-			const mapping = {
-				in_stock: { label: "In stock", color: "success" },
-				limited: { label: "Limited", color: "warning" },
-				out_of_stock: { label: "Out of stock", color: "error" },
-			} as const;
-			const { label, color } = mapping[row.availability] ?? { label: "Unknown", color: "secondary" };
+/**
+ * Table5 with:
+ *   1) Filters (search, dataset, table, missing desc)
+ *   2) Pagination
+ *   3) Select Columns (a button that toggles a menu)
+ */
+export function Table5() {
+  //
+  // 1) Hooks at the top, unconditionally
+  //
+  const { selectedSchemaName } = React.useContext(SchemaContext);
+  const { data = [], isLoading, error } = useFlattenedFields(selectedSchemaName);
 
-			return <Chip color={color} label={label} size="small" variant="soft" />;
-		},
-		name: "Inventory",
-		width: "150px",
-	},
-	{
-		formatter: (row): React.JSX.Element => (
-			<Typography sx={{ whiteSpace: "nowrap" }} variant="inherit">
-				{row.quantity}
-			</Typography>
-		),
-		name: "Quantity",
-		width: "100px",
-	},
-	{
-		formatter: (row): React.JSX.Element => (
-			<Typography noWrap variant="inherit">
-				{row.tags}
-			</Typography>
-		),
-		name: "Tags",
-		width: "150px",
-	},
-	{
-		formatter: (row): string => {
-			return new Intl.NumberFormat("en-US", { style: "currency", currency: row.currency }).format(row.price);
-		},
-		name: "Price",
-		width: "100px",
-	},
-	{
-		formatter: (): React.JSX.Element => (
-			<IconButton>
-				<PencilSimpleIcon />
-			</IconButton>
-		),
-		name: "Actions",
-		hideName: true,
-		width: "100px",
-		align: "right",
-	},
-] satisfies ColumnDef<Product>[];
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [tableFilter, setTableFilter] = React.useState('');
+  const [datasetFilter, setDatasetFilter] = React.useState('');
+  const [missingDescription, setMissingDescription] = React.useState(false);
 
-export function Table5(): React.JSX.Element {
-	return (
-		<Box sx={{ bgcolor: "var(--mui-palette-background-level1)", p: 3 }}>
-			<Card>
-				<Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap", p: 3 }}>
-					<OutlinedInput
-						placeholder="Search products"
-						startAdornment={
-							<InputAdornment position="start">
-								<MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
-							</InputAdornment>
-						}
-						sx={{ maxWidth: "100%", width: "500px" }}
-					/>
-					<Select defaultValue="desc" name="sort" sx={{ maxWidth: "100%", width: "240px" }}>
-						<Option value="desc">Newest</Option>
-						<Option value="asc">Oldest</Option>
-					</Select>
-					<Select defaultValue="" name="category" sx={{ maxWidth: "100%", width: "240px" }}>
-						<Option value="">All categories</Option>
-						<Option value="Healthcare">Healthcare</Option>
-						<Option value="Makeup">Makeup</Option>
-						<Option value="Skincare">Skincare</Option>
-					</Select>
-					<Select defaultValue="" name="availability" sx={{ maxWidth: "100%", width: "240px" }}>
-						<Option value="">Availability</Option>
-						<Option value="in_stock">In stock</Option>
-						<Option value="limited">Limited</Option>
-						<Option value="out_of_stock">Out of stock</Option>
-					</Select>
-					<FormControlLabel control={<Switch name="shippable" />} label="Shippable" />
-				</Stack>
-				<Divider />
-				<Box sx={{ overflowX: "auto" }}>
-					<DataTable<Product> columns={columns} rows={products} selectable />
-				</Box>
-			</Card>
-		</Box>
-	);
+  // For pagination
+  const [currentPage, setCurrentPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(5); // default 5
+
+  // "Select Columns" menu anchor
+  const [anchorElColumns, setAnchorElColumns] = React.useState<null | HTMLElement>(null);
+  const openColumns = Boolean(anchorElColumns);
+  function handleMenuOpenColumns(event: React.MouseEvent<HTMLButtonElement>) {
+    setAnchorElColumns(event.currentTarget);
+  }
+  function handleMenuCloseColumns() {
+    setAnchorElColumns(null);
+  }
+
+  // 2) Build the base columns in a memo
+  const baseColumns = React.useMemo<ColumnDef<FlattenedField>[]>(() => {
+    return [
+      {
+        name: 'Dataset',
+        field: undefined, // not strictly needed
+        formatter: (row) => row.table_schema,
+        width: '160px',
+      },
+      {
+        name: 'Table Name',
+        formatter: (row) => (
+          <Link color="text.primary" underline="none" variant="subtitle2">
+            {row.table_name}
+          </Link>
+        ),
+        width: '160px',
+      },
+      {
+        name: 'Field Name',
+        formatter: (row) => row.column_name,
+        width: '160px',
+      },
+      {
+        name: 'Field Description',
+        formatter: (row) => row.description || '',
+        width: '240px',
+      },
+      {
+        name: 'Primary Key',
+        formatter: (row) =>
+          row.primary_key ? (
+            <Chip label="Yes" color="success" size="small" variant="soft" />
+          ) : (
+            <Chip label="No" size="small" variant="soft" />
+          ),
+        width: '120px',
+      },
+      {
+        name: 'Foreign Key',
+        formatter: (row) =>
+          row.foreign_key ? (
+            <Chip label="Yes" color="warning" size="small" variant="soft" />
+          ) : (
+            <Chip label="No" size="small" variant="soft" />
+          ),
+        width: '120px',
+      },
+      {
+        name: 'Actions',
+        hideName: true,
+        align: 'right',
+        width: '80px',
+        formatter: () => (
+          <IconButton>
+            <PencilSimple />
+          </IconButton>
+        ),
+      },
+    ];
+  }, []);
+
+  // We store a local array of columns with "isVisible"
+  const [columnsWithVisibility, setColumnsWithVisibility] = React.useState<
+    (ColumnDef<FlattenedField> & { isVisible: boolean })[]
+  >([]);
+
+  // On mount (or if baseColumns changes), initialize columnsWithVisibility
+  React.useEffect(() => {
+    if (columnsWithVisibility.length === 0) {
+      setColumnsWithVisibility(
+        baseColumns.map((col) => ({
+          ...col,
+          isVisible: true,
+        }))
+      );
+    }
+  }, [baseColumns, columnsWithVisibility.length]);
+
+  // 3) Create your unique tables/datasets from data
+  const uniqueTables = React.useMemo(() => {
+    return Array.from(new Set(data.map((f) => f.table_name)));
+  }, [data]);
+
+  const uniqueDatasets = React.useMemo(() => {
+    return Array.from(new Set(data.map((f) => f.table_schema)));
+  }, [data]);
+
+  // 4) Filter the data
+  const filteredRows = React.useMemo(() => {
+    return data.filter((row) => {
+      if (tableFilter && row.table_name !== tableFilter) return false;
+      if (datasetFilter && row.table_schema !== datasetFilter) return false;
+      if (missingDescription && row.description) return false;
+      if (searchQuery) {
+        const lowerName = row.column_name.toLowerCase();
+        if (!lowerName.includes(searchQuery.toLowerCase())) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [data, tableFilter, datasetFilter, missingDescription, searchQuery]);
+
+  // 5) Pagination logic
+  const totalCount = filteredRows.length;
+  const startIndex = currentPage * rowsPerPage;
+  const paginatedRows = filteredRows.slice(startIndex, startIndex + rowsPerPage);
+
+  // If the user changes the page
+  function handlePageChange(_event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) {
+    setCurrentPage(newPage);
+  }
+
+  // If the user changes rows-per-page
+  function handleRowsPerPageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setCurrentPage(0);
+  }
+
+  // 6) If loading/error, return early
+  if (isLoading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Card sx={{ p: 3 }}>Loading schema fields...</Card>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Card sx={{ p: 3, color: 'error.main' }}>
+          Error loading fields: {String(error)}
+        </Card>
+      </Box>
+    );
+  }
+
+  // 7) Visible columns
+  const visibleColumns = columnsWithVisibility.filter((col) => col.isVisible);
+
+  function handleToggleColumn(index: number) {
+    setColumnsWithVisibility((prev) => {
+      const copy = [...prev];
+      copy[index].isVisible = !copy[index].isVisible;
+      return copy;
+    });
+  }
+
+  //
+  // 8) Render the final UI
+  //
+  return (
+    <Box sx={{ bgcolor: 'var(--mui-palette-background-level1)', p: 3 }}>
+      <Card>
+        {/* Filters */}
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{ alignItems: 'center', flexWrap: 'wrap', p: 3 }}
+        >
+          {/* Search by field name */}
+          <OutlinedInput
+            placeholder="Search fields"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            startAdornment={
+              <InputAdornment position="start">
+                <MagnifyingGlass fontSize="var(--icon-fontSize-md)" />
+              </InputAdornment>
+            }
+            sx={{ maxWidth: '100%', width: '300px' }}
+          />
+
+          {/* Table filter */}
+          <Select
+            value={tableFilter}
+            onChange={(e) => setTableFilter(e.target.value)}
+            displayEmpty
+            sx={{ maxWidth: '100%', width: '240px' }}
+          >
+            <Option value="">All tables</Option>
+            {uniqueTables.map((t) => (
+              <Option key={t} value={t}>
+                {t}
+              </Option>
+            ))}
+          </Select>
+
+          {/* Dataset filter */}
+          <Select
+            value={datasetFilter}
+            onChange={(e) => setDatasetFilter(e.target.value)}
+            displayEmpty
+            sx={{ maxWidth: '100%', width: '240px' }}
+          >
+            <Option value="">All datasets</Option>
+            {uniqueDatasets.map((ds) => (
+              <Option key={ds} value={ds}>
+                {ds}
+              </Option>
+            ))}
+          </Select>
+
+          {/* Missing Description toggle */}
+          <FormControlLabel
+            control={
+              <Switch
+                checked={missingDescription}
+                onChange={(e) => setMissingDescription(e.target.checked)}
+              />
+            }
+            label="Missing Description"
+          />
+
+          {/* A button to open "Select Columns" menu */}
+
+        </Stack>
+
+        <Divider />
+
+        {/* The DataTable */}
+        <Box sx={{ overflowX: 'auto' }}>
+          <DataTable<FlattenedField>
+            columns={visibleColumns}
+            rows={paginatedRows}
+            selectable
+          />
+        </Box>
+
+        {/* TablePagination component */}
+        <Divider />
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={currentPage}
+          onPageChange={handlePageChange}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          rowsPerPageOptions={[5, 10, 25]}
+        />
+      </Card>
+    </Box>
+  );
 }

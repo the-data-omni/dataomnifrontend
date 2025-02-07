@@ -65,7 +65,7 @@ export function MainNav(): React.JSX.Element {
 						</Box>
 						<Button
 							component="a"
-							href={paths.purchase}
+							href={paths.dashboard.analytics}
 							sx={{ display: { xs: "none", md: "flex" } }}
 							target="_blank"
 							variant="contained"

@@ -18,7 +18,7 @@ import { Logo } from "@/components/core/logo";
 import type { ColorScheme } from "@/styles/theme/types";
 
 import { icons } from "../nav-icons";
-import { WorkspacesSwitch } from "../workspaces-switch";
+import { SchemaSwitch } from "../workspaces-switch";
 import { navColorStyles } from "./styles";
 
 const logoColors = {
@@ -62,7 +62,7 @@ export function SideNav({ color = "evident", items = [] }: SideNavProps): React.
 						<Logo color={logoColor} height={32} width={122} />
 					</Box>
 				</div>
-				<WorkspacesSwitch />
+				<SchemaSwitch />
 			</Stack>
 			<Box
 				component="nav"

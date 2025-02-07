@@ -1,56 +1,117 @@
-"use client";
+'use client';
 
-import type * as React from "react";
-import Avatar from "@mui/material/Avatar";
-import ListItemAvatar from "@mui/material/ListItemAvatar";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
+import React from 'react';
+import { useNavigate } from "react-router-dom";
+import Avatar from '@mui/material/Avatar';
+import ListItemAvatar from '@mui/material/ListItemAvatar';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Typography from '@mui/material/Typography';
+import { paths } from '@/paths';
 
-export const workspaces = [
-	{ name: "Devias", avatar: "/assets/workspace-avatar-1.png" },
-	{ name: "Carpatin", avatar: "/assets/workspace-avatar-2.png" },
-] satisfies Workspaces[];
-
-export interface Workspaces {
-	name: string;
-	avatar: string;
+// local storage retrieval
+function getLocalJsonSchemas() {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem('uploadedItems');
+  if (!stored) return [];
+  try {
+    const items = JSON.parse(stored) || [];
+    // Filter for .json files
+    return items
+      .filter((i: any) => i.extension === 'json')
+      .map((i: any) => ({ name: i.name }));
+  } catch {
+    return [];
+  }
 }
 
-export interface WorkspacesPopoverProps {
-	anchorEl: null | Element;
-	onChange?: (tenant: string) => void;
-	onClose?: () => void;
-	open?: boolean;
+export interface SchemaPopoverProps {
+  anchorEl: null | Element;
+  onChange?: (schemaName: string) => void;
+  onClose?: () => void;
+  open?: boolean;
 }
 
-export function WorkspacesPopover({
-	anchorEl,
-	onChange,
-	onClose,
-	open = false,
-}: WorkspacesPopoverProps): React.JSX.Element {
-	return (
-		<Menu
-			anchorEl={anchorEl}
-			anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-			onClose={onClose}
-			open={open}
-			slotProps={{ paper: { sx: { width: "250px" } } }}
-			transformOrigin={{ horizontal: "right", vertical: "top" }}
-		>
-			{workspaces.map((workspace) => (
-				<MenuItem
-					key={workspace.name}
-					onClick={() => {
-						onChange?.(workspace.name);
-					}}
-				>
-					<ListItemAvatar>
-						<Avatar src={workspace.avatar} sx={{ "--Avatar-size": "32px" }} variant="rounded" />
-					</ListItemAvatar>
-					{workspace.name}
-				</MenuItem>
-			))}
-		</Menu>
-	);
+export function SchemaPopover({
+  anchorEl,
+  onChange,
+  onClose,
+  open = false
+}: SchemaPopoverProps) {
+//   const router = useRouter();
+
+  // State that holds both local JSON files and the example file
+  const [schemas, setSchemas] = React.useState<{ name: string }[]>([]);
+
+  const navigate = useNavigate();
+
+  // Load local storage + example schema on mount
+  React.useEffect(() => {
+    // Start with local JSON schemas
+    const localSchemas = getLocalJsonSchemas();
+
+    // Fetch example schema from public folder
+    fetch('/example-schema.json')
+      .then((res) => {
+        if (!res.ok) {
+          // if the file is missing or an error occurred, just return null
+          return null;
+        }
+        return res.json();
+      })
+      .then((exampleSchema) => {
+        // exampleSchema might be null if fetch failed
+        if (exampleSchema) {
+          // Add an item with "name" so it appears in the list
+          // You could pass exampleSchema.title if you prefer that as the name
+          localSchemas.push({ name: 'example-schema.json' });
+        }
+        // Update the state
+        setSchemas(localSchemas);
+      })
+      .catch(() => {
+        // If there's a fetch error, we just ignore adding the example schema
+        setSchemas(localSchemas);
+      });
+  }, []);
+
+  // Handler for “Load from API”
+  const handleLoadFromAPI = () => {
+    // Redirect to the file storage page
+    navigate(paths.dashboard.fileStorage);
+    onClose?.();
+  };
+
+  return (
+    <Menu
+      anchorEl={anchorEl}
+      anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      onClose={onClose}
+      open={open}
+      slotProps={{ paper: { sx: { width: 250 } } }}
+      transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+    >
+      <MenuItem onClick={handleLoadFromAPI}>
+        <ListItemAvatar>
+          <Avatar variant="rounded">U</Avatar>
+        </ListItemAvatar>
+        <Typography variant="body2">Load from API</Typography>
+      </MenuItem>
+
+      {schemas.map((schema) => (
+        <MenuItem
+          key={schema.name}
+          onClick={() => {
+            onChange?.(schema.name);
+            onClose?.();
+          }}
+        >
+          <ListItemAvatar>
+            <Avatar variant="rounded">S</Avatar>
+          </ListItemAvatar>
+          {schema.name}
+        </MenuItem>
+      ))}
+    </Menu>
+  );
 }

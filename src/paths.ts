@@ -130,6 +130,6 @@ export const paths = {
 	notAuthorized: "/errors/not-authorized",
 	notFound: "/errors/not-found",
 	internalServerError: "/errors/internal-server-error",
-	docs: "https://material-kit-pro-react-docs.devias.io",
+	docs: 'https://github.com/the-data-omni/data_omni_api',
 	purchase: "https://mui.com/store/items/devias-kit-pro",
 } as const;
