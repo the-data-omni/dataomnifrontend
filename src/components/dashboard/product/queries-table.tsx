@@ -14,27 +14,17 @@ import type { ColumnDef } from "@/components/core/data-table";
 import { DataTable } from "@/components/core/data-table";
 import { RouterLink } from "@/components/core/link";
 
-/**
- * Updated "Query" interface:
- * - `statementType` instead of `category`
- * - We also allow for new numeric fields (avgExecutionTime, avgTotalBytesProcessed),
- *   though we only display them in the modal. 
- */
 export interface Query {
   id: string;
   question: string;
   sql?: string;
-  statementType: string;          // Replaces 'category'
+  statementType: string;
   count: number;
-  createdAt: Date;
-
+  createdAt: Date; // replaced with new "creation_time" from the API
   avgExecutionTime?: number | null;
   avgTotalBytesProcessed?: number | null;
 }
 
-/**
- * "loading" indicates whether to show spinner
- */
 export interface QueriesTableProps {
   rows?: Query[];
   loading?: boolean;
@@ -54,7 +44,6 @@ const columns: ColumnDef<Query>[] = [
         >
           {row.question}
         </Link>
-        {/* Show statementType instead of category */}
         <Typography color="text.secondary" variant="body2">
           {row.statementType || "N/A"}
         </Typography>
@@ -98,16 +87,7 @@ const columns: ColumnDef<Query>[] = [
   },
 ];
 
-/**
- * QueriesTable:
- * - If `loading === true`, show a spinner
- * - Else if no rows, "No queries found"
- * - Otherwise show the table
- */
-export function QueriesTable({
-  rows = [],
-  loading = false,
-}: QueriesTableProps): React.JSX.Element {
+export function QueriesTable({ rows = [], loading = false }: QueriesTableProps): React.JSX.Element {
   if (loading) {
     return (
       <Box sx={{ p: 3, display: "flex", justifyContent: "center" }}>
