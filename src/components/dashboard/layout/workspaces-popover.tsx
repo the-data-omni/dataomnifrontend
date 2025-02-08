@@ -1,3 +1,4 @@
+// workspaces-popover.tsx
 'use client';
 
 import React from 'react';
@@ -38,12 +39,10 @@ export function SchemaPopover({
   onClose,
   open = false
 }: SchemaPopoverProps) {
-//   const router = useRouter();
+  const navigate = useNavigate();
 
   // State that holds both local JSON files and the example file
   const [schemas, setSchemas] = React.useState<{ name: string }[]>([]);
-
-  const navigate = useNavigate();
 
   // Load local storage + example schema on mount
   React.useEffect(() => {
@@ -62,10 +61,37 @@ export function SchemaPopover({
       .then((exampleSchema) => {
         // exampleSchema might be null if fetch failed
         if (exampleSchema) {
-          // Add an item with "name" so it appears in the list
-          // You could pass exampleSchema.title if you prefer that as the name
-          localSchemas.push({ name: 'example-schema.json' });
+          // 1. Store the raw JSON in localStorage, keyed by "example-schema.json"
+          localStorage.setItem('example-schema.json', JSON.stringify(exampleSchema));
+          
+          // 2. Also add an entry to "uploadedItems" so it shows in our local schemas list
+          const uploadedItemsRaw = localStorage.getItem('uploadedItems') || '[]';
+          const uploadedItems = JSON.parse(uploadedItemsRaw) as any[];
+
+          // Check if we already have "example-schema.json" in uploadedItems
+          const alreadyExists = uploadedItems.some(
+            (item) => item.name === 'example-schema.json'
+          );
+
+          if (!alreadyExists) {
+            uploadedItems.push({
+              name: 'example-schema.json',
+              extension: 'json'
+            });
+            localStorage.setItem('uploadedItems', JSON.stringify(uploadedItems));
+          }
+
+          // 3. Finally, push it into localSchemas array so it's visible in this component
+          // (Though if it's already in local storage, getLocalJsonSchemas might have done this,
+          //  but let's push again in case it wasn't there yet.)
+          const alreadyInLocalSchemas = localSchemas.some(
+            (ls: { name: string; }) => ls.name === 'example-schema.json'
+          );
+          if (!alreadyInLocalSchemas) {
+            localSchemas.push({ name: 'example-schema.json' });
+          }
         }
+
         // Update the state
         setSchemas(localSchemas);
       })
