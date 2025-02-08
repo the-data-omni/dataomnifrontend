@@ -49,16 +49,16 @@ export const dashboardConfig = {
 				// 		{ key: "customers:details", title: "Customer details", href: paths.dashboard.customers.details("1") },
 				// 	],
 				// },
-				// {
-				// 	key: "products",
-				// 	title: "MetaData",
-				// 	icon: "shopping-bag-open",
-				// 	items: [
-				// 		{ key: "products", title: "Historical Queries", href: paths.dashboard.products.list },
-				// 		// { key: "products:create", title: "Create product", href: paths.dashboard.products.create },
-				// 		// { key: "products:details", title: "Product details", href: paths.dashboard.products.details("1") },
-				// 	],
-				// },
+				{
+					key: "products",
+					title: "MetaData",
+					icon: "shopping-bag-open",
+					items: [
+						{ key: "products", title: "Historical Queries", href: paths.dashboard.products.list },
+						// { key: "products:create", title: "Create product", href: paths.dashboard.products.create },
+						// { key: "products:details", title: "Product details", href: paths.dashboard.products.details("1") },
+					],
+				},
 				// {
 				// 	key: "orders",
 				// 	title: "Orders",
