@@ -42,40 +42,40 @@ DataOmni is a project designed to help you:
 ## Project Setup
 
 1. **Clone the repository** (if you haven’t already):
-   ```bash
-   git clone https://github.com/your-username/dataomnifrontend.git
-   cd dataomnifrontend
+    ```bash
+    git clone https://github.com/the-data-omni/dataomnifrontend.git
+    cd dataomnifrontend
 
 2. **Install Dependancies**
-  ```bash
-  # Using npm
-  npm install
+    ```bash
+    # Using npm
+    npm install
   
-  # Using yarn
-  yarn
+    # Using yarn
+    yarn
   
-  # Using pnpm
-  pnpm install
+    # Using pnpm
+    pnpm install
 
 3. **Development**
-  ```bash
-  # Using npm
-  npm run dev
+    ```bash
+    # Using npm
+    npm run dev
   
-  # Using yarn
-  yarn dev
+    # Using yarn
+    yarn dev
   
-  # Using pnpm
-  pnpm dev
+    # Using pnpm
+    pnpm dev
 
 4. **Build**
-  ```bash
-  # Using npm
-  npm run build
+    ```bash
+    # Using npm
+    npm run build
   
-  # Using yarn
-  yarn build
+    # Using yarn
+    yarn build
   
-  # Using pnpm
-  pnpm build
+    # Using pnpm
+    pnpm build
 
