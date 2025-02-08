@@ -10,8 +10,6 @@ import Typography from "@mui/material/Typography";
 import { Plus as PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
-
-// Import the React Query hook
 import { useQuery } from "@tanstack/react-query";
 
 import type { Metadata } from "@/types/metadata";
@@ -38,7 +36,6 @@ const metadata: Metadata = {
 export function Page(): React.JSX.Element {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Extract filter & pagination from URL
   const statementType = searchParams.get("statementType") || undefined;
   const question = searchParams.get("question") || undefined;
   const sku = searchParams.get("sku") || undefined;
@@ -49,34 +46,29 @@ export function Page(): React.JSX.Element {
   const rowsPerPage = parseInt(searchParams.get("rowsPerPage") || "5", 10);
 
   /**
-   * 1) Use React Query to fetch & cache data.
-   *    - staleTime: Infinity => doesn't auto-refetch on page revisit
+   * 1) useReactQuery to fetch existing queries
    */
   const { data: queriesData, isLoading, refetch } = useQuery({
     queryKey: ["queriesAndQuestions"],
     queryFn: async (): Promise<Query[]> => {
       const res = await fetch("http://127.0.0.1:5000/queries_and_questions");
-      if (!res.ok) {
-        throw new Error(`HTTP error: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
       const data: Array<{
         avg_execution_time: number | null;
         avg_total_bytes_processed: number | null;
         count: number;
-        creation_time: string; // New field in the API
+        creation_time: string;
         query: string;
         question: string;
         statement_type: string;
       }> = await res.json();
 
-      // Transform API response to our local "Query" shape:
       return data.map((item, index) => ({
         id: `Q-${index + 1}`,
         question: item.question,
         sql: item.query,
         count: item.count,
         statementType: item.statement_type,
-        // Use creation_time from the API
         createdAt: new Date(item.creation_time),
         avgExecutionTime: item.avg_execution_time,
         avgTotalBytesProcessed: item.avg_total_bytes_processed,
@@ -85,39 +77,43 @@ export function Page(): React.JSX.Element {
     staleTime: Infinity,
   });
 
-  // Build a dynamic list of statement types
-  const statementTypes = React.useMemo(() => {
-    if (!queriesData) return [];
-    const types = new Set<string>();
-    queriesData.forEach((q) => {
-      if (q.statementType) {
-        types.add(q.statementType);
-      }
-    });
-    return Array.from(types).sort();
-  }, [queriesData]);
+  // 2) Keep local state to show/hide the "Add Query" modal
+  const [showAddModal, setShowAddModal] = React.useState(false);
 
-  // Filter & sort
+  // If user clicks "Add Query" button, we open the modal in "add" mode
+  const handleAddQuery = React.useCallback(() => {
+    setShowAddModal(true);
+  }, []);
+
+  // We'll close the add-modal on "save" or "cancel"
+  const handleCloseAddModal = React.useCallback(() => {
+    setShowAddModal(false);
+  }, []);
+
+  // Filter + sort
   const filtered = React.useMemo(() => {
     if (!queriesData) return [];
     const f = applyFilters(queriesData, { statementType, question, sku });
     return applySort(f, sortDir);
   }, [queriesData, statementType, question, sku, sortDir]);
 
-  // Slice for pagination
   const paginated = React.useMemo(() => {
     const start = page * rowsPerPage;
     const end = start + rowsPerPage;
     return filtered.slice(start, end);
   }, [filtered, page, rowsPerPage]);
 
-  // Identify the row for the modal
   const clickedQuery: Query | undefined = React.useMemo(() => {
     if (!previewId || !queriesData) return undefined;
     return queriesData.find((q) => q.id === previewId);
   }, [previewId, queriesData]);
 
-  // Pagination handlers
+  // Refresh
+  const handleRefresh = React.useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  // For pagination
   const handlePageChange = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
       setSearchParams((prev) => {
@@ -141,11 +137,6 @@ export function Page(): React.JSX.Element {
     },
     [setSearchParams]
   );
-
-  // Manual refresh button
-  const handleRefresh = () => {
-    refetch();
-  };
 
   return (
     <>
@@ -171,16 +162,15 @@ export function Page(): React.JSX.Element {
               <Typography variant="h4">Queries</Typography>
             </Box>
             <Stack direction="row" spacing={2}>
+              {/* Instead of navigating to a new page, we show the same modal in "add" mode */}
               <Button
-                component={RouterLink}
-                href={paths.dashboard.products.create}
+                onClick={handleAddQuery}
                 startIcon={<PlusIcon />}
                 variant="contained"
               >
                 Add Query
               </Button>
 
-              {/* Refresh button => calls refetch() */}
               <Button onClick={handleRefresh} variant="outlined">
                 Refresh
               </Button>
@@ -188,18 +178,20 @@ export function Page(): React.JSX.Element {
           </Stack>
 
           <Card>
-            {/* Dynamic statementTypes passed in for the filter */}
             <QueriesFilters
               filters={{ statementType, question, sku }}
               sortDir={sortDir}
-              statementTypes={statementTypes}
+              statementTypes={
+                queriesData
+                  ? Array.from(new Set(queriesData.map((q) => q.statementType).filter(Boolean))).sort()
+                  : []
+              }
             />
             <Divider />
             <Box sx={{ overflowX: "auto" }}>
               <QueriesTable rows={paginated} loading={isLoading} />
             </Box>
             <Divider />
-
             <QueriesPagination
               count={filtered.length}
               page={page}
@@ -211,8 +203,27 @@ export function Page(): React.JSX.Element {
         </Stack>
       </Box>
 
-      {/* Show a modal if previewId is set in the URL */}
-      <QueryModal open={Boolean(previewId)} query={clickedQuery} />
+      {/* 3) We use the SAME modal for Add (showAddModal) or Edit (previewId). */}
+      <QueryModal
+        open={Boolean(previewId) || showAddModal}
+        // if previewId => it's an "edit" of that query
+        // else if showAddModal => it's a "new" query (undefined => we handle in modal)
+        query={clickedQuery}
+        onClose={() => {
+          // if we were in "edit" mode, remove previewId from URL
+          if (previewId) {
+            setSearchParams((prev) => {
+              const newParams = new URLSearchParams(prev);
+              newParams.delete("previewId");
+              return newParams;
+            });
+          }
+          // if we were in "add" mode, close local state
+          if (showAddModal) {
+            handleCloseAddModal();
+          }
+        }}
+      />
     </>
   );
 }
@@ -227,16 +238,12 @@ function applySort(rows: Query[], sortDir: "asc" | "desc" | undefined): Query[] 
   });
 }
 
-/** Filter on statementType, question, sku, etc. */
-function applyFilters(
-  rows: Query[],
-  { statementType, question, sku }: Filters
-): Query[] {
+function applyFilters(rows: Query[], { statementType, question, sku }: Filters): Query[] {
   return rows.filter((r) => {
     if (statementType && r.statementType !== statementType) return false;
     if (question && !r.question.toLowerCase().includes(question.toLowerCase())) return false;
     if (sku) {
-      return false;
+      return false; // we don't store sku in the new data
     }
     return true;
   });

@@ -1,0 +1,27 @@
+{
+  "name": "ratings",
+  "description": "This table contains individual user ratings for all movies.",
+  "schemaColor": "#91C4F2",
+  "columns": [
+    {
+      "name": "movie_id",
+      "description": "Movie's ID from the `movies` table.",
+      "type": "bigint"
+    },
+    {
+      "name": "user_id",
+      "description": "ID of the user who gave the rating.",
+      "type": "integer"
+    },
+    {
+      "name": "rating",
+      "description": "Rating score assigned to the movie.",
+      "type": "integer"
+    },
+    {
+      "name": "created_at",
+      "description": "Timestamp when the rating was created.",
+      "type": "timestamp"
+    }
+  ]
+}

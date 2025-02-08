@@ -1,0 +1,58 @@
+{
+  "schema": "mobile_analytics",
+  "name": "events",
+  "description": "This analytics table contains all events tracked in the Meditation iOS app.",
+  "columns": [
+    {
+      "name": "id",
+      "description": "Unique identifier of an event.",
+      "type": "bigint",
+      "key": true
+    },
+    {
+      "name": "category",
+      "description": "Category parameter of an event, for example onboarding.",
+      "type": "text"
+    },
+    {
+      "name": "action",
+      "description": "Action parameter of an event, for example screenview.",
+      "type": "text"
+    },
+    {
+      "name": "name",
+      "description": "Name parameter of an event, for example bindle-content.",
+      "type": "text"
+    },
+    {
+      "name": "screen_resolution",
+      "description": "Resolution of a user’s smartphone, for example 375x812.",
+      "type": "text"
+    },
+    {
+      "name": "device_type",
+      "description": "Model of a user’s smartphone and the version of the OS, for example iPhone 15 Pro,17.0",
+      "type": "text"
+    },
+    {
+      "name": "user_id",
+      "description": "ID of a user in the users table.",
+      "type": "integer"
+    },
+    {
+      "name": "country",
+      "description": "Country derived from user’s IP address.",
+      "type": "text"
+    },
+    {
+      "name": "custom_parameters",
+      "description": "All custom parameters of an even in a key-value format.",
+      "type": "JSON"
+    },
+    {
+      "name": "created_at",
+      "description": "Timestamp of an event.",
+      "type": "datetime"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+import { TableConfig } from "@/components/dashboard/Visualizer/types";
+
+%TABLE_FILES%
+
+const tables: TableConfig[] = [
+%TABLE_NAMES%
+];
+
+export default tables;

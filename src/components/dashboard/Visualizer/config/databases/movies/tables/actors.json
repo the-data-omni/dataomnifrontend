@@ -1,0 +1,17 @@
+{
+  "name": "actors",
+  "description": "This table contains movie actors.",
+  "schemaColor": "#91C4F2",
+  "columns": [
+    {
+      "name": "id",
+      "description": "Unique identifier for each actor.",
+      "type": "bigint"
+    },
+    {
+      "name": "name",
+      "description": "Full name of the actor.",
+      "type": "text"
+    }
+  ]
+}

@@ -36,80 +36,107 @@ interface Query {
 }
 
 export interface ProductModalProps {
+  /** Whether the modal is open or not */
   open: boolean;
-  query?: Query; // might be undefined
+  /** If provided, we're editing this query. If omitted, we're creating a new one. */
+  query?: Query;
+  /** Optional callback if you'd like to handle closure differently */
+  onClose?: () => void;
 }
 
 /**
- * Minimal QueryModal that never changes the number of Hooks between renders.
- * - All Hook calls at top level.
- * - We do "if (!open) return null;" AFTER hooks are called.
- * - We handle `query` being undefined with safe defaults, instead of skipping hooks.
+ * QueryModal => used for both adding a new query (no `query` prop)
+ * or editing an existing query (with `query` prop).
  */
-export function QueryModal({ open, query }: ProductModalProps): React.JSX.Element | null {
-  /* ---------------------------
-   * 1) ALWAYS CALL YOUR HOOKS
-   * --------------------------- */
+export function QueryModal({
+  open,
+  query,
+  onClose,
+}: ProductModalProps): React.JSX.Element | null {
+  /* ---------------------------------------------
+   * HOOKS / STATE
+   * --------------------------------------------- */
   const navigate = useNavigate();
 
-  // edit-mode toggling
-  const [editing, setEditing] = React.useState(false);
+  // Distinguish "Add" vs "Edit": if no `query` is passed, we’re in "Add" mode
+  const isNew = !query?.id;
 
-  // local "editable" states
+  // Whether we are editing (text fields) or showing read-only
+  // If adding new, we start editing immediately. If editing existing, start read-only.
+  const [editing, setEditing] = React.useState(isNew);
+
+  // local states for the fields
   const [localQuestion, setLocalQuestion] = React.useState("");
   const [localStatementType, setLocalStatementType] = React.useState("");
   const [localSql, setLocalSql] = React.useState("");
 
-  // Sync local states whenever `query` changes
+  // Sync when `query` changes
   React.useEffect(() => {
-    setLocalQuestion(query?.question ?? "");
-    setLocalStatementType(query?.statementType ?? "");
-    setLocalSql(query?.sql ?? "");
-  }, [query]);
+    if (query) {
+      setLocalQuestion(query.question ?? "");
+      setLocalStatementType(query.statementType ?? "");
+      setLocalSql(query.sql ?? "");
+      // If an existing query, default to read-only
+      setEditing(isNew);
+    } else {
+      // If no query => new
+      setLocalQuestion("");
+      setLocalStatementType("");
+      setLocalSql("");
+      setEditing(true);
+    }
+  }, [query, isNew]);
 
-  // handle close
+  // By default, if user hits "X" or outside click, we close + navigate
   const handleClose = React.useCallback(() => {
-    navigate(paths.dashboard.products.list);
-  }, [navigate]);
+    if (onClose) {
+      onClose();
+    } else {
+      navigate(paths.dashboard.products.list);
+    }
+  }, [navigate, onClose]);
 
+  // handle "Save"
   const handleSave = React.useCallback(() => {
-    // Example only: show a toast
-    toast.success("Query updated!");
+    // In real code, call an API or update React Query cache, e.g.:
+    if (isNew) {
+      toast.success(`Created new query: ${localQuestion}`);
+    } else {
+      toast.success(`Updated query: ${localQuestion}`);
+    }
     setEditing(false);
-  }, []);
+    handleClose();
+  }, [isNew, localQuestion, handleClose]);
 
+  // handle "Cancel" => revert local fields
   const handleCancel = React.useCallback(() => {
-    // revert changes from original query
-    setLocalQuestion(query?.question ?? "");
-    setLocalStatementType(query?.statementType ?? "");
-    setLocalSql(query?.sql ?? "");
-    setEditing(false);
-  }, [query]);
+    if (query) {
+      setLocalQuestion(query.question ?? "");
+      setLocalStatementType(query.statementType ?? "");
+      setLocalSql(query.sql ?? "");
+      setEditing(false);
+    } else {
+      // If truly new, user might want to close entirely
+      handleClose();
+    }
+  }, [query, handleClose]);
 
-  /* -----------------------------------------------
-   * 2) IF !open, WE STILL CALLED OUR HOOKS ABOVE
-   * ----------------------------------------------- */
-  if (!open) {
-    return null;
-  }
+  // If modal not open, don’t render anything
+  if (!open) return null;
 
-  /* -----------------------------------------------
-   * 3) SAFE DEFAULTS IF query IS UNDEFINED
-   * ----------------------------------------------- */
+  // Fallback data for read-only
   const fallbackId = query?.id ?? "NO-ID";
   const fallbackCount = query?.count ?? 0;
   const fallbackCreated = query?.createdAt
     ? dayjs(query.createdAt).format("MMMM D, YYYY hh:mm A")
     : "N/A";
-  const fallbackExec = query?.avgExecutionTime != null ? `${query.avgExecutionTime} ms` : "N/A";
+  const fallbackExec =
+    query?.avgExecutionTime != null ? `${query.avgExecutionTime} ms` : "N/A";
   const fallbackBytes =
     query?.avgTotalBytesProcessed != null
       ? `${query.avgTotalBytesProcessed.toFixed(2)} bytes`
       : "N/A";
 
-  /* -----------------------------------------------
-   * 4) RENDER
-   * ----------------------------------------------- */
   return (
     <Dialog
       open={open}
@@ -120,10 +147,14 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
         "& .MuiDialog-paper": { height: "100%", width: "100%" },
       }}
     >
-      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, minHeight: 0 }}>
-        {/* Header */}
+      <DialogContent
+        sx={{ display: "flex", flexDirection: "column", gap: 2, minHeight: 0 }}
+      >
+        {/* Header: if new => "Add Query", else => "Edit Query" */}
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">{fallbackId}</Typography>
+          <Typography variant="h6">
+            {isNew ? "Add Query" : `Edit Query ${fallbackId}`}
+          </Typography>
           <IconButton onClick={handleClose}>
             <XIcon />
           </IconButton>
@@ -139,7 +170,8 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
             >
               <Typography variant="h6">Details</Typography>
 
-              {!editing ? (
+              {/* If not new and not editing => show "Edit" button */}
+              {!isNew && !editing ? (
                 <Button
                   color="secondary"
                   startIcon={<PencilSimpleIcon />}
@@ -147,7 +179,10 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
                 >
                   Edit
                 </Button>
-              ) : (
+              ) : null}
+
+              {/* If editing => show "Save" and "Cancel" */}
+              {editing && (
                 <Stack direction="row" spacing={2}>
                   <Button variant="contained" onClick={handleSave}>
                     Save
@@ -160,9 +195,12 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
             </Stack>
 
             <Card sx={{ borderRadius: 1 }} variant="outlined">
+              {/* If not editing => read-only, else => text fields */}
               {!editing ? (
-                /* READ-ONLY PROPERTIES */
-                <PropertyList divider={<Divider />} sx={{ "--PropertyItem-padding": "12px 24px" }}>
+                <PropertyList
+                  divider={<Divider />}
+                  sx={{ "--PropertyItem-padding": "12px 24px" }}
+                >
                   <PropertyItem name="Question" value={localQuestion || "N/A"} />
                   <PropertyItem name="Statement Type" value={localStatementType || "N/A"} />
                   <PropertyItem name="Created at" value={fallbackCreated} />
@@ -171,7 +209,10 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
                     value={
                       <Chip
                         icon={
-                          <CheckCircleIcon color="var(--mui-palette-success-main)" weight="fill" />
+                          <CheckCircleIcon
+                            color="var(--mui-palette-success-main)"
+                            weight="fill"
+                          />
                         }
                         label={fallbackCount}
                         size="small"
@@ -183,7 +224,6 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
                   <PropertyItem name="Avg Bytes Processed" value={fallbackBytes} />
                 </PropertyList>
               ) : (
-                /* EDIT MODE: TEXT FIELDS */
                 <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
                   <TextField
                     label="Question"
@@ -197,7 +237,7 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
                     onChange={(e) => setLocalStatementType(e.target.value)}
                     fullWidth
                   />
-                  {/* keep "Created" and "Count" read-only or remove if not needed */}
+                  {/* "Created" and "Count" read-only or hidden */}
                   <Typography variant="body2" color="text.secondary">
                     Created: {fallbackCreated}
                   </Typography>
@@ -217,12 +257,21 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
                 <Box sx={{ p: 2, borderTop: "1px solid", borderColor: "divider" }}>
                   {localSql ? (
                     <>
-                      <Box sx={{ bgcolor: "#f9f9f9", p: 2, borderRadius: 1, mb: 2 }}>
+                      <Box
+                        sx={{
+                          bgcolor: "#f9f9f9",
+                          p: 2,
+                          borderRadius: 1,
+                          mb: 2,
+                        }}
+                      >
                         <pre style={{ margin: 0 }}>{localSql}</pre>
                       </Box>
                       <Button
                         variant="contained"
-                        onClick={() => alert(`Run or do something with: ${localSql}`)}
+                        onClick={() =>
+                          alert(`Run or do something with this query: ${localSql}`)
+                        }
                       >
                         Do Something
                       </Button>

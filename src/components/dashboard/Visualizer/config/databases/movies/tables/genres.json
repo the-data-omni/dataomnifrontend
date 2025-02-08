@@ -1,0 +1,17 @@
+{
+  "name": "genres",
+  "description": "This table contains movie genres.",
+  "schemaColor": "#91C4F2",
+  "columns": [
+    {
+      "name": "id",
+      "description": "Unique identifier for each genre.",
+      "type": "bigint"
+    },
+    {
+      "name": "name",
+      "description": "Name of the movie genre.",
+      "type": "text"
+    }
+  ]
+}

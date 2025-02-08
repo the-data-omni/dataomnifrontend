@@ -55,6 +55,7 @@ export const dashboardConfig = {
 					icon: "shopping-bag-open",
 					items: [
 						{ key: "products", title: "Historical Queries", href: paths.dashboard.products.list },
+						{ key: "blank", title: "Data Model", href: paths.dashboard.blank},
 						// { key: "products:create", title: "Create product", href: paths.dashboard.products.create },
 						// { key: "products:details", title: "Product details", href: paths.dashboard.products.details("1") },
 					],
@@ -259,7 +260,7 @@ export const dashboardConfig = {
 		// 		},
 		// 		{ key: "disabled", title: "Disabled", disabled: true, icon: "warning-diamond" },
 		// 		{ key: "label", title: "Label", icon: "file", label: "New" },
-		// 		{ key: "blank", title: "Blank", href: paths.dashboard.blank, icon: "file-dashed" },
+				
 		// 		{ key: "external", title: "External link", href: "https://devias.io", external: true, icon: "link" },
 		// 	],
 		// },
