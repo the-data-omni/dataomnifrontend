@@ -14,22 +14,30 @@ import type { ColumnDef } from "@/components/core/data-table";
 import { DataTable } from "@/components/core/data-table";
 import { RouterLink } from "@/components/core/link";
 
+/**
+ * Updated "Query" interface:
+ * - `statementType` instead of `category`
+ * - We also allow for new numeric fields (avgExecutionTime, avgTotalBytesProcessed),
+ *   though we only display them in the modal. 
+ */
 export interface Query {
   id: string;
   question: string;
   sql?: string;
-  category: string;
+  statementType: string;          // Replaces 'category'
   count: number;
   createdAt: Date;
+
+  avgExecutionTime?: number | null;
+  avgTotalBytesProcessed?: number | null;
 }
 
 /**
- * Add a "loading" prop. 
- * If true, show a spinner instead of the table or "No queries found".
+ * "loading" indicates whether to show spinner
  */
 export interface QueriesTableProps {
   rows?: Query[];
-  loading?: boolean; 
+  loading?: boolean;
 }
 
 const columns: ColumnDef<Query>[] = [
@@ -46,8 +54,9 @@ const columns: ColumnDef<Query>[] = [
         >
           {row.question}
         </Link>
+        {/* Show statementType instead of category */}
         <Typography color="text.secondary" variant="body2">
-          in {row.category || "N/A"}
+          {row.statementType || "N/A"}
         </Typography>
       </Box>
     ),
@@ -92,7 +101,7 @@ const columns: ColumnDef<Query>[] = [
 /**
  * QueriesTable:
  * - If `loading === true`, show a spinner
- * - Else if `rows.length === 0`, "No queries found"
+ * - Else if no rows, "No queries found"
  * - Otherwise show the table
  */
 export function QueriesTable({

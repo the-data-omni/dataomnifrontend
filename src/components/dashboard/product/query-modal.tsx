@@ -21,17 +21,18 @@ import { dayjs } from "@/lib/dayjs";
 import { RouterLink } from "@/components/core/link";
 import { PropertyItem } from "@/components/core/property-item";
 import { PropertyList } from "@/components/core/property-list";
-import { Clock as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock";
 
-/** Reuse your "Query" interface, but mark fields optional. */
+/** Extended Query interface for modal usage. */
 interface Query {
   id?: string;
   question?: string;
-  category?: string;
-  /** Replaced `status` with `count` */
+  statementType?: string;
   count?: number;
   createdAt?: Date;
   sql?: string;
+
+  avgExecutionTime?: number | null;
+  avgTotalBytesProcessed?: number | null;
 }
 
 export interface ProductModalProps {
@@ -49,9 +50,17 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
   // Fallback data
   const productId = query?.id || "NO-ID";
   const question = query?.question || "Unknown question";
-  const category = query?.category || "Unknown category";
-  const count = query?.count ?? 0; // fallback numeric value
+  const statementType = query?.statementType || "N/A";
+  const count = query?.count ?? 0;
   const createdAt = query?.createdAt ? dayjs(query.createdAt).format("MMMM D, YYYY hh:mm A") : "N/A";
+
+  // Convert numeric fields to user-friendly strings or "N/A"
+  const avgExecutionTime = query?.avgExecutionTime != null
+    ? `${query.avgExecutionTime} ms`
+    : "N/A";
+  const avgBytesProcessed = query?.avgTotalBytesProcessed != null
+    ? `${query.avgTotalBytesProcessed.toFixed(2)} bytes`
+    : "N/A";
 
   return (
     <Dialog
@@ -65,10 +74,7 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
     >
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, minHeight: 0 }}>
         {/* Header row */}
-        <Stack
-          direction="row"
-          sx={{ alignItems: "center", justifyContent: "space-between" }}
-        >
+        <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
           <Typography variant="h6">{productId}</Typography>
           <IconButton onClick={handleClose}>
             <XIcon />
@@ -98,11 +104,8 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
                 {(
                   [
                     { key: "Question", value: question },
-                    { key: "Category", value: category },
-                    {
-                      key: "Created at",
-                      value: createdAt,
-                    },
+                    { key: "Statement Type", value: statementType },
+                    { key: "Created at", value: createdAt },
                     {
                       key: "Count",
                       value: (
@@ -114,6 +117,9 @@ export function QueryModal({ open, query }: ProductModalProps): React.JSX.Elemen
                         />
                       ),
                     },
+                    // NEW fields
+                    { key: "Avg Execution Time", value: avgExecutionTime },
+                    { key: "Avg Bytes Processed", value: avgBytesProcessed },
                   ] satisfies { key: string; value: React.ReactNode }[]
                 ).map((item) => (
                   <PropertyItem key={item.key} name={item.key} value={item.value} />

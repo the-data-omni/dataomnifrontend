@@ -17,47 +17,40 @@ import { paths } from "@/paths";
 import { FilterButton, FilterPopover, useFilterContext } from "@/components/core/filter-button";
 import { Option } from "@/components/core/option";
 
-/** Extend your Filters interface to include `question?: string;` */
+/** Updated Filters: statementType instead of category, plus question, sku, status. */
 export interface Filters {
-  category?: string;
+  statementType?: string;
   sku?: string;
   status?: string;
-  question?: string; // NEW field for partial match on question
+  question?: string;
 }
-
 export type SortDir = "asc" | "desc";
 
 export interface ProductsFiltersProps {
   filters?: Filters;
   sortDir?: SortDir;
+  /**
+   * A list of statement types from the actual data (dynamic).
+   */
+  statementTypes?: string[];
 }
 
-/** Example tabs from your code, for "All", "Published", "Draft" */
+/** Example status tabs (unchanged) */
 const tabs = [
   { label: "All", value: "", count: 5 },
   { label: "Published", value: "published", count: 3 },
   { label: "Draft", value: "draft", count: 2 },
 ] as const;
 
-/**
- * The main ProductsFilters component with:
- *  - Tabs for status
- *  - Category filter
- *  - SKU filter
- *  - Question filter (NEW)
- *  - Sort direction
- */
 export function QueriesFilters({
   filters = {},
   sortDir = "desc",
+  statementTypes = [],
 }: ProductsFiltersProps): React.JSX.Element {
-  const { category, sku, status, question } = filters;
+  const { statementType, sku, status, question } = filters;
 
   const navigate = useNavigate();
 
-  /**
-   * A helper to rebuild the URL with updated filters
-   */
   const updateSearchParams = React.useCallback(
     (newFilters: Filters, newSortDir: SortDir): void => {
       const searchParams = new URLSearchParams();
@@ -74,11 +67,10 @@ export function QueriesFilters({
         searchParams.set("sku", newFilters.sku);
       }
 
-      if (newFilters.category) {
-        searchParams.set("category", newFilters.category);
+      if (newFilters.statementType) {
+        searchParams.set("statementType", newFilters.statementType);
       }
 
-      // If user typed a question filter, store it
       if (newFilters.question) {
         searchParams.set("question", newFilters.question);
       }
@@ -88,16 +80,10 @@ export function QueriesFilters({
     [navigate]
   );
 
-  /**
-   * Clears all filters but preserves the sort direction
-   */
   const handleClearFilters = React.useCallback(() => {
     updateSearchParams({}, sortDir);
   }, [updateSearchParams, sortDir]);
 
-  /**
-   * For each filter field
-   */
   const handleStatusChange = React.useCallback(
     (_: React.SyntheticEvent, value: string) => {
       updateSearchParams({ ...filters, status: value }, sortDir);
@@ -105,9 +91,9 @@ export function QueriesFilters({
     [updateSearchParams, filters, sortDir]
   );
 
-  const handleCategoryChange = React.useCallback(
+  const handleStatementTypeChange = React.useCallback(
     (value?: string) => {
-      updateSearchParams({ ...filters, category: value }, sortDir);
+      updateSearchParams({ ...filters, statementType: value }, sortDir);
     },
     [updateSearchParams, filters, sortDir]
   );
@@ -119,7 +105,6 @@ export function QueriesFilters({
     [updateSearchParams, filters, sortDir]
   );
 
-  // NEW: handle the question filter
   const handleQuestionChange = React.useCallback(
     (value?: string) => {
       updateSearchParams({ ...filters, question: value }, sortDir);
@@ -134,8 +119,7 @@ export function QueriesFilters({
     [updateSearchParams, filters]
   );
 
-  // This helps show/hide a "Clear filters" button if user set any
-  const hasFilters = !!(status || category || sku || question);
+  const hasFilters = !!(status || statementType || sku || question);
 
   return (
     <div>
@@ -158,18 +142,19 @@ export function QueriesFilters({
 
       <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap", p: 2 }}>
         <Stack direction="row" spacing={2} sx={{ alignItems: "center", flex: "1 1 auto", flexWrap: "wrap" }}>
-          {/* Category */}
+          {/* Statement Type Filter */}
           <FilterButton
-            displayValue={category || undefined}
-            label="Category"
+            displayValue={statementType || undefined}
+            label="Statement Type"
             onFilterApply={(value) => {
-              handleCategoryChange(value as string);
+              handleStatementTypeChange(value as string);
             }}
             onFilterDelete={() => {
-              handleCategoryChange();
+              handleStatementTypeChange();
             }}
-            popover={<CategoryFilterPopover />}
-            value={category || undefined}
+            // Pass dynamic statementTypes into the popover
+            popover={<StatementTypeFilterPopover statementTypes={statementTypes} />}
+            value={statementType || undefined}
           />
 
           {/* SKU */}
@@ -186,7 +171,7 @@ export function QueriesFilters({
             value={sku || undefined}
           />
 
-          {/* NEW: Question filter */}
+          {/* Question */}
           <FilterButton
             displayValue={question || undefined}
             label="Question"
@@ -200,7 +185,6 @@ export function QueriesFilters({
             value={question || undefined}
           />
 
-          {/* Clear filters if any are applied */}
           {hasFilters ? <Button onClick={handleClearFilters}>Clear filters</Button> : null}
         </Stack>
 
@@ -220,9 +204,11 @@ export function QueriesFilters({
 }
 
 /** 
- * Re-usable popover for Category 
+ * Popover that lists out dynamic statement types 
  */
-function CategoryFilterPopover(): React.JSX.Element {
+function StatementTypeFilterPopover(props: { statementTypes: string[] }): React.JSX.Element {
+  const { statementTypes } = props;
+
   const { anchorEl, onApply, onClose, open, value: initialValue } = useFilterContext();
   const [value, setValue] = React.useState<string>("");
 
@@ -231,7 +217,7 @@ function CategoryFilterPopover(): React.JSX.Element {
   }, [initialValue]);
 
   return (
-    <FilterPopover anchorEl={anchorEl} onClose={onClose} open={open} title="Filter by category">
+    <FilterPopover anchorEl={anchorEl} onClose={onClose} open={open} title="Filter by Statement Type">
       <FormControl>
         <Select
           onChange={(event) => {
@@ -239,11 +225,14 @@ function CategoryFilterPopover(): React.JSX.Element {
           }}
           value={value}
         >
-          <Option value="">Select a category</Option>
-          <Option value="Healthcare">Healthcare</Option>
-          <Option value="Makeup">Makeup</Option>
-          <Option value="Skincare">Skincare</Option>
-          {/* Add more if needed */}
+          {/* Let user choose "All" if they want to clear */}
+          <Option value="">All Statement Types</Option>
+          {/* Dynamically populate with the statementTypes array */}
+          {statementTypes.map((type) => (
+            <Option key={type} value={type}>
+              {type}
+            </Option>
+          ))}
         </Select>
       </FormControl>
       <Button
@@ -258,9 +247,7 @@ function CategoryFilterPopover(): React.JSX.Element {
   );
 }
 
-/**
- * Re-usable popover for SKU
- */
+/** SKU popover (unchanged) */
 function SkuFilterPopover(): React.JSX.Element {
   const { anchorEl, onApply, onClose, open, value: initialValue } = useFilterContext();
   const [value, setValue] = React.useState<string>("");
@@ -297,9 +284,7 @@ function SkuFilterPopover(): React.JSX.Element {
   );
 }
 
-/**
- * NEW: Popover for "Question" filter
- */
+/** Question popover (unchanged) */
 function QuestionFilterPopover(): React.JSX.Element {
   const { anchorEl, onApply, onClose, open, value: initialValue } = useFilterContext();
   const [value, setValue] = React.useState<string>("");

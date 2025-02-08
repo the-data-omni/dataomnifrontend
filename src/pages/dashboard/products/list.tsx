@@ -11,21 +11,22 @@ import { Plus as PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 
+// Import the React Query hooks
+import { useQuery } from "@tanstack/react-query";
+
 import type { Metadata } from "@/types/metadata";
 import { appConfig } from "@/config/app";
 import { paths } from "@/paths";
 import { RouterLink } from "@/components/core/link";
 
-// Table & modal
 import { QueriesTable, Query } from "@/components/dashboard/product/queries-table";
 import { QueryModal } from "@/components/dashboard/product/query-modal";
-
-// Filters & pagination
 import { QueriesFilters } from "@/components/dashboard/product/products-filters";
 import { QueriesPagination } from "@/components/dashboard/product/products-pagination";
 
+// Same Filters interface as before
 interface Filters {
-  category?: string;
+  statementType?: string;
   question?: string;
   sku?: string;
   sortDir?: "asc" | "desc";
@@ -38,74 +39,92 @@ const metadata: Metadata = {
 export function Page(): React.JSX.Element {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // 1) Extract standard filter props
-  const category = searchParams.get("category") || undefined;
+  // Extract standard filter & pagination
+  const statementType = searchParams.get("statementType") || undefined;
   const question = searchParams.get("question") || undefined;
   const sku = searchParams.get("sku") || undefined;
   const sortDir = (searchParams.get("sortDir") as "asc" | "desc") || undefined;
-
-  // For the modal
   const previewId = searchParams.get("previewId") || undefined;
 
-  // 2) Extract pagination from searchParams
-  const page = parseInt(searchParams.get("page") || "0", 10);  // default 0
-  const rowsPerPage = parseInt(searchParams.get("rowsPerPage") || "5", 10); // default 5
+  const page = parseInt(searchParams.get("page") || "0", 10);
+  const rowsPerPage = parseInt(searchParams.get("rowsPerPage") || "5", 10);
 
-  // 3) Queries + loading
-  const [queries, setQueries] = React.useState<Query[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  /**
+   * 1) Use React Query to fetch + cache data
+   * - staleTime: Infinity => data never becomes “stale” automatically
+   * - keepPreviousData: true => preserves data during pagination
+   */
+  const {
+    data: queriesData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["queriesAndQuestions"],
+    // The function that does the fetch + transform
+    queryFn: async (): Promise<Query[]> => {
+      const res = await fetch("http://127.0.0.1:5000/queries_and_questions");
+      if (!res.ok) {
+        throw new Error(`HTTP error: ${res.status}`);
+      }
+      const data: Array<{
+        avg_execution_time: number | null;
+        avg_total_bytes_processed: number | null;
+        count: number;
+        query: string;
+        question: string;
+        statement_type: string;
+      }> = await res.json();
 
-  React.useEffect(() => {
-    setLoading(true);
-    fetch("http://127.0.0.1:5000/queries_and_questions")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP error: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((data: Array<{ count: number; query: string; question: string }>) => {
-        const transformed = data.map((item, index) => ({
-          id: `Q-${index + 1}`,
-          question: item.question,
-          sql: item.query,
-          count: item.count,
-          category: "N/A",
-          createdAt: new Date(),
-        }));
-        setQueries(transformed);
-      })
-      .catch((err) => {
-        console.error("Error fetching queries:", err);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+      return data.map((item, index) => ({
+        id: `Q-${index + 1}`,
+        question: item.question,
+        sql: item.query,
+        count: item.count,
+        statementType: item.statement_type,
+        createdAt: new Date(),
+        avgExecutionTime: item.avg_execution_time,
+        avgTotalBytesProcessed: item.avg_total_bytes_processed,
+      }));
+    },
+    staleTime: Infinity,       // Don't auto-refetch on page revisit
+    // keepPreviousData: true,
+  });
 
-  // 4) Filter & sort
+  // 2) Build a unique list of statement types from the data
+  const statementTypes = React.useMemo(() => {
+    if (!queriesData) return [];
+    const types = new Set<string>();
+    queriesData.forEach((q) => {
+      if (q.statementType) {
+        types.add(q.statementType);
+      }
+    });
+    return Array.from(types).sort();
+  }, [queriesData]);
+
+  // 3) Filter & sort
   const filtered = React.useMemo(() => {
-    const f = applyFilters(queries, { category, question, sku });
+    if (!queriesData) return [];
+    const f = applyFilters(queriesData, { statementType, question, sku });
     return applySort(f, sortDir);
-  }, [queries, category, question, sku, sortDir]);
+  }, [queriesData, statementType, question, sku, sortDir]);
 
-  // 5) Slice the rows according to (page, rowsPerPage)
+  // 4) Slice for pagination
   const paginated = React.useMemo(() => {
     const start = page * rowsPerPage;
     const end = start + rowsPerPage;
     return filtered.slice(start, end);
   }, [filtered, page, rowsPerPage]);
 
-  // 6) Identify row for preview modal
+  // 5) Identify row for preview modal
   const clickedQuery: Query | undefined = React.useMemo(() => {
-    if (!previewId) return undefined;
-    return queries.find((q) => q.id === previewId);
-  }, [previewId, queries]);
+    if (!previewId || !queriesData) return undefined;
+    return queriesData.find((q) => q.id === previewId);
+  }, [previewId, queriesData]);
 
-  // 7) Handlers for pagination changes
+  // 6) Pagination handlers
   const handlePageChange = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
-      // Update the search params
       setSearchParams((prev) => {
         const newParams = new URLSearchParams(prev);
         newParams.set("page", String(newPage));
@@ -118,17 +137,20 @@ export function Page(): React.JSX.Element {
   const handleRowsPerPageChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newRows = parseInt(event.target.value, 10);
-
       setSearchParams((prev) => {
         const newParams = new URLSearchParams(prev);
         newParams.set("rowsPerPage", String(newRows));
-        // Also reset page to 0, so you don’t end up with an out-of-range page
         newParams.set("page", "0");
         return newParams;
       });
     },
     [setSearchParams]
   );
+
+  // 7) A "Refresh" button that calls refetch manually
+  const handleRefresh = () => {
+    refetch();
+  };
 
   return (
     <>
@@ -153,7 +175,7 @@ export function Page(): React.JSX.Element {
             <Box sx={{ flex: "1 1 auto" }}>
               <Typography variant="h4">Queries</Typography>
             </Box>
-            <Box>
+            <Stack direction="row" spacing={2}>
               <Button
                 component={RouterLink}
                 href={paths.dashboard.products.create}
@@ -162,24 +184,26 @@ export function Page(): React.JSX.Element {
               >
                 Add Query
               </Button>
-            </Box>
+
+              {/* The new "Refresh" button */}
+              <Button onClick={handleRefresh} variant="outlined">
+                Refresh
+              </Button>
+            </Stack>
           </Stack>
 
           <Card>
-            <QueriesFilters filters={{ category, question, sku }} sortDir={sortDir} />
+            <QueriesFilters
+              filters={{ statementType, question, sku }}
+              sortDir={sortDir}
+              statementTypes={statementTypes}
+            />
             <Divider />
             <Box sx={{ overflowX: "auto" }}>
-              {/* Show table */}
-              <QueriesTable rows={paginated} loading={loading} />
+              <QueriesTable rows={paginated} loading={isLoading} />
             </Box>
             <Divider />
 
-            {/* 
-              The total # of items is filtered.length
-              The current page is "page"
-              The current rows-per-page is "rowsPerPage"
-              We have real callbacks
-            */}
             <QueriesPagination
               count={filtered.length}
               page={page}
@@ -196,7 +220,7 @@ export function Page(): React.JSX.Element {
   );
 }
 
-/** Sort by createdAt ascending/descending */
+/** Sort ascending/descending by createdAt */
 function applySort(rows: Query[], sortDir: "asc" | "desc" | undefined): Query[] {
   return [...rows].sort((a, b) => {
     if (sortDir === "asc") {
@@ -206,15 +230,15 @@ function applySort(rows: Query[], sortDir: "asc" | "desc" | undefined): Query[] 
   });
 }
 
+/** Filter on statementType, question, sku, etc. */
 function applyFilters(
   rows: Query[],
-  { category, question, sku }: Filters
+  { statementType, question, sku }: Filters
 ): Query[] {
   return rows.filter((r) => {
-    if (category && r.category !== category) return false;
+    if (statementType && r.statementType !== statementType) return false;
     if (question && !r.question.toLowerCase().includes(question.toLowerCase())) return false;
     if (sku) {
-      // We have no 'sku' in the new data, but keep or remove as needed
       return false;
     }
     return true;
