@@ -1,6 +1,6 @@
 {
-  "name": "@devias-kit-pro/vite-template",
-  "author": "Devias IO",
+  "name": "@thedataomni/scoring",
+  "author": "TheDataOni",
   "version": "8.0.1",
   "private": true,
   "scripts": {
