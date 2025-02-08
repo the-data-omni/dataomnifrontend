@@ -1,30 +1,35 @@
 "use client";
 
-import type * as React from "react";
+import * as React from "react";
 import TablePagination from "@mui/material/TablePagination";
 
-function noop(): void {
-	// No operation
+interface QueriesPaginationProps {
+  count: number;   // total number of filtered rows
+  page: number;    // current page
+  rowsPerPage: number;  // how many rows shown per page
+  onChangePage: (event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => void;
+  onChangeRowsPerPage: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-interface ProductsPaginationProps {
-	count: number;
-	page: number;
-}
-
-export function QueriesPagination({ count, page }: ProductsPaginationProps): React.JSX.Element {
-	// You should implement the pagination using a similar logic as the filters.
-	// Note that when page change, you should keep the filter search params.
-
-	return (
-		<TablePagination
-			component="div"
-			count={count}
-			onPageChange={noop}
-			onRowsPerPageChange={noop}
-			page={page}
-			rowsPerPage={5}
-			rowsPerPageOptions={[5, 10, 25]}
-		/>
-	);
+/**
+ * QueriesPagination => uses MUI's TablePagination
+ */
+export function QueriesPagination({
+  count,
+  page,
+  rowsPerPage,
+  onChangePage,
+  onChangeRowsPerPage
+}: QueriesPaginationProps): React.JSX.Element {
+  return (
+    <TablePagination
+      component="div"
+      count={count}
+      page={page}
+      rowsPerPage={rowsPerPage}
+      onPageChange={onChangePage}
+      onRowsPerPageChange={onChangeRowsPerPage}
+      rowsPerPageOptions={[5, 10, 25]}
+    />
+  );
 }
