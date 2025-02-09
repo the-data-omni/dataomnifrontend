@@ -1,6 +1,6 @@
 services:
   dataomnifrontend:
-    image: ghcr.io/the-data-omni/dataomnifrontend:latest  # Pulls from GHCR
+    image: ghcr.io/the-data-omni/dataomnifrontend:latest 
     restart: always
     ports:
       - "80:3000"
@@ -19,12 +19,12 @@ services:
       - VITE_MAPBOX_API_KEY=
       - VITE_GOOGLE_TAG_MANAGER_ID=
   schemascoring_api:
-    image: ghcr.io/the-data-omni/schemascoring_api:latest  # Pulls from GHCR
+    image: ghcr.io/the-data-omni/schemascoring_api:latest 
     restart: always
     ports:
       - "5001:5000"
   dataomni_api:
-    image: ghcr.io/the-data-omni/dataomni_api:latest  # Pulls from GHCR
+    image: ghcr.io/the-data-omni/dataomni_api:latest 
     restart: always
     ports:
       - "5001:5000"
