@@ -24,4 +24,5 @@ services:
     ports:
       - "5000:5000"
     environment:
+      # PROVIDE YOUR OWN API KEY
       - OPENAI_API_KEY=''
