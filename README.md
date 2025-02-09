@@ -87,7 +87,7 @@ As Prerequisites, you must have docker and docker-compose installed on your mach
 
 1. `git clone https://github.com/the-data-omni/dataomnifrontend.git`
 2. `cd dataomnifrontend`
-3. edit `docker-compose.yml` to include your OPENAI_API_KEY 
+3. edit `docker-compose.yml` to include your `OPENAI_API_KEY` 
 4. `docker compose up -d`
 5. frontend is running at [http://localhost](http://localhost)
 6. backend is running at [http://localhost:5000](http://localhost:5000)
