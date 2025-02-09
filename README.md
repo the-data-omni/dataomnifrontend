@@ -79,3 +79,14 @@ DataOmni is a project designed to help you:
     # Using pnpm
     pnpm build
 
+## How to run using Docker and docker-compose
+
+It is possible to do a 'one-touch' installation of data-omni using containers (AKA "Docker"). This will deploy both the frontend and backend
+
+As Prerequisites, you must have docker and docker-compose installed on your machine; see [Docker Install](https://docs.docker.com/get-started/get-docker/) and [Docker Compose Install](https://docs.docker.com/compose/install/).
+
+1. `git clone https://github.com/the-data-omni/dataomnifrontend.git`
+2. `cd dataomnifrontend`
+3. `docker compose up -d`
+4. frontend is running at [http://localhost](http://localhost)
+5. backend is running at [http://localhost:5000](http://localhost:5000)
