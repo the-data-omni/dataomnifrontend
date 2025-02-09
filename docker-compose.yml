@@ -1,0 +1,28 @@
+services:
+  dataomnifrontend:
+    image: ghcr.io/the-data-omni/dataomnifrontend:latest 
+    restart: always
+    ports:
+      - "80:3000"
+    environment:
+      - VITE_APP_URL=http://127.0.0.1:5000
+      - VITE_LOG_LEVEL=
+      - VITE_AUTH_STRATEGY=
+      - VITE_AUTH0_DOMAIN=
+      - VITE_AUTH0_CLIENT_ID=
+      - VITE_CLERK_PUBLISHABLE_KEY=
+      - VITE_COGNITO_AUTHORITY=
+      - VITE_COGNITO_DOMAIN=
+      - VITE_COGNITO_CLIENT_ID=
+      - VITE_SUPABASE_URL=
+      - VITE_SUPABASE_PUBLIC_KEY=
+      - VITE_MAPBOX_API_KEY=
+      - VITE_GOOGLE_TAG_MANAGER_ID=
+  dataomni_api:
+    image: ghcr.io/the-data-omni/dataomni_api:latest 
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      # PROVIDE YOUR OWN API KEY
+      - OPENAI_API_KEY=''
