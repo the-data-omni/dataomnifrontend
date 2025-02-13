@@ -68,7 +68,7 @@ export function MainNav({ items }: MainNavProps): React.JSX.Element {
 						>
 							<ListIcon />
 						</IconButton>
-						<SearchButton />
+						{/* <SearchButton />
 					</Stack>
 					<Stack
 						direction="row"
@@ -83,7 +83,7 @@ export function MainNav({ items }: MainNavProps): React.JSX.Element {
 							sx={{ borderColor: "var(--MainNav-divider)", display: { xs: "none", lg: "block" } }}
 						/>
 						<LanguageSwitch />
-						<UserButton />
+						<UserButton /> */}
 					</Stack>
 				</Box>
 			</Box>

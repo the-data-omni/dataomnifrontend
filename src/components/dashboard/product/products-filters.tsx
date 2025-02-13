@@ -145,7 +145,7 @@ export function QueriesFilters({
           {/* Statement Type Filter */}
           <FilterButton
             displayValue={statementType || undefined}
-            label="Statement Type"
+            label="SQL Statement Type"
             onFilterApply={(value) => {
               handleStatementTypeChange(value as string);
             }}
@@ -158,7 +158,7 @@ export function QueriesFilters({
           />
 
           {/* SKU */}
-          <FilterButton
+          {/* <FilterButton
             displayValue={sku || undefined}
             label="SKU"
             onFilterApply={(value) => {
@@ -169,7 +169,7 @@ export function QueriesFilters({
             }}
             popover={<SkuFilterPopover />}
             value={sku || undefined}
-          />
+          /> */}
 
           {/* Question */}
           <FilterButton

@@ -60,7 +60,7 @@ const columns: ColumnDef<Query>[] = [
     },
   },
   {
-    name: "Created",
+    name: "Last Used Date",
     width: "180px",
     formatter: (row: Query) => row.createdAt.toLocaleString(),
   },

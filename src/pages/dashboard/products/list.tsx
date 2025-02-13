@@ -30,7 +30,7 @@ interface Filters {
 }
 
 const metadata: Metadata = {
-  title: `List | Queries | Dashboard | ${appConfig.name}`,
+  title: `Queries | ${appConfig.name}`,
 };
 
 export function Page(): React.JSX.Element {
@@ -51,7 +51,13 @@ export function Page(): React.JSX.Element {
   const { data: queriesData, isLoading, refetch } = useQuery({
     queryKey: ["queriesAndQuestions"],
     queryFn: async (): Promise<Query[]> => {
-      const res = await fetch("http://127.0.0.1:5000/queries_and_questions");
+      const res = await fetch("http://127.0.0.1:5000/queries_and_questions", {
+        method: 'GET',
+        credentials: 'include', // <= This is where you include credentials
+        headers: {
+          'Content-Type': 'application/json',
+        }});
+      
       if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
       const data: Array<{
         avg_execution_time: number | null;

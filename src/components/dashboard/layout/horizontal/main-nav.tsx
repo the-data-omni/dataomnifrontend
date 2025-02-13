@@ -110,7 +110,7 @@ export function MainNav({ color = "evident", items = [] }: MainNavProps): React.
 						spacing={2}
 						sx={{ alignItems: "center", flex: "1 1 auto", justifyContent: "flex-end" }}
 					>
-						<SearchButton />
+						{/* <SearchButton />
 						<NotificationsButton />
 						<ContactsButton />
 						<Divider
@@ -119,7 +119,7 @@ export function MainNav({ color = "evident", items = [] }: MainNavProps): React.
 							sx={{ borderColor: "var(--MainNav-divider)", display: { xs: "none", md: "block" } }}
 						/>
 						<LanguageSwitch />
-						<UserButton />
+						<UserButton /> */}
 					</Stack>
 				</Box>
 				<Box

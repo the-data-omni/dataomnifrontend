@@ -20,7 +20,13 @@ async function fetchSchemaFromLocal(filename: string): Promise<FlattenedField[]>
 }
 
 async function fetchFlattenedFieldsFromAPI(): Promise<FlattenedField[]> {
-  const response = await fetch('http://127.0.0.1:5000/bigquery_info');
+  const response = await fetch('http://127.0.0.1:5000/bigquery_info', {
+    method: 'GET',
+    credentials: 'include', // <= This is where you include credentials
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
