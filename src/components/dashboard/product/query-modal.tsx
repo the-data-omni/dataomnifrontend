@@ -12,6 +12,8 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import { CheckCircle as CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
 import { PencilSimple as PencilSimpleIcon } from "@phosphor-icons/react/dist/ssr/PencilSimple";
 import { X as XIcon } from "@phosphor-icons/react/dist/ssr/X";
@@ -45,6 +47,23 @@ export interface ProductModalProps {
 }
 
 /**
+ * Helper function to parse BigQuery error messages like:
+ *   1) "Syntax error: Unexpected integer literal "2" at [1:19]"
+ *   2) "Unrecognized name: query at [1:8]"
+ * ... etc.
+ * If no match, returns the original rawMsg.
+ */
+function parseBqErrorMessage(rawMsg: string): string {
+  const re = /(Syntax error:.*?at \[\d+:\d+\]|Unrecognized name:.*?at \[\d+:\d+\])/i;
+  const match = rawMsg.match(re);
+  if (match) {
+    const cleaned = match[0].replace(/\s+at\s+\[\d+:\d+\]/i, "").trim();
+    return cleaned;
+  }
+  return rawMsg;
+}
+
+/**
  * QueryModal => used for both adding a new query (no `query` prop)
  * or editing an existing query (with `query` prop).
  */
@@ -65,10 +84,47 @@ export function QueryModal({
   // If adding new, we start editing immediately. If editing existing, start read-only.
   const [editing, setEditing] = React.useState(isNew);
 
-  // local states for the fields
+  // Local states for the fields
   const [localQuestion, setLocalQuestion] = React.useState("");
   const [localStatementType, setLocalStatementType] = React.useState("");
   const [localSql, setLocalSql] = React.useState("");
+
+  // Track dry-run status and message/bytes
+  const [testQueryStatus, setTestQueryStatus] = React.useState<"idle" | "success" | "error">("idle");
+  const [dryRunBytes, setDryRunBytes] = React.useState<string>("");
+  const [testQueryErrorMessage, setTestQueryErrorMessage] = React.useState<string>("");
+
+  // Handle menu for "Open Query"
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  const menuOpen = Boolean(anchorEl);
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  // Example function to open Looker Studio with the current localSql
+  // You'd customize this link for your environment:
+  function handleOpenLookerStudio(sql: string) {
+    const baseUrl = "https://lookerstudio.google.com/reporting/create";
+    const mode = "edit";
+    const connector = "bigQuery";
+    const projectId = "bigquery-public-data";
+    const billingProjectId = "foreign-connect-48db5";
+
+    const sqlParam = encodeURIComponent(sql);
+    const finalUrl =
+      `${baseUrl}?c.mode=${mode}` +
+      `&ds.connector=${connector}` +
+      `&ds.type=CUSTOM_QUERY` +
+      `&ds.projectId=${projectId}` +
+      `&ds.sql=${sqlParam}` +
+      `&ds.billingProjectId=${billingProjectId}`;
+
+    window.open(finalUrl, "_blank");
+  }
 
   // Sync when `query` changes
   React.useEffect(() => {
@@ -76,7 +132,7 @@ export function QueryModal({
       setLocalQuestion(query.question ?? "");
       setLocalStatementType(query.statementType ?? "");
       setLocalSql(query.sql ?? "");
-      // If an existing query, default to read-only
+      // If existing query, default to read-only
       setEditing(isNew);
     } else {
       // If no query => new
@@ -98,7 +154,7 @@ export function QueryModal({
 
   // handle "Save"
   const handleSave = React.useCallback(() => {
-    // In real code, call an API or update React Query cache, e.g.:
+    // In real code, call an API or update React Query cache
     if (isNew) {
       toast.success(`Created new query: ${localQuestion}`);
     } else {
@@ -120,6 +176,38 @@ export function QueryModal({
       handleClose();
     }
   }, [query, handleClose]);
+
+  // Function to test/dry-run query
+  const handleTestQuery = React.useCallback(async () => {
+    try {
+      setTestQueryStatus("idle");
+      setDryRunBytes("");
+      setTestQueryErrorMessage("");
+
+      const resp = await fetch("http://127.0.0.1:5000/dry_run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: localSql }),
+      });
+
+      if (!resp.ok) {
+        const errorData = await resp.json();
+        const rawMessage = errorData?.message || "Error testing query";
+        const sanitizedMessage = parseBqErrorMessage(rawMessage);
+        throw new Error(sanitizedMessage);
+      }
+
+      const data = await resp.json();
+      setDryRunBytes(data.formatted_bytes_processed);
+      setTestQueryStatus("success");
+      toast.success(data.message);
+    } catch (error) {
+      console.error("Dry run failed:", error);
+      setTestQueryStatus("error");
+      setTestQueryErrorMessage((error as Error).message);
+      toast.error((error as Error).message || "Error testing query");
+    }
+  }, [localSql]);
 
   // If modal not open, don’t render anything
   if (!open) return null;
@@ -147,9 +235,7 @@ export function QueryModal({
         "& .MuiDialog-paper": { height: "100%", width: "100%" },
       }}
     >
-      <DialogContent
-        sx={{ display: "flex", flexDirection: "column", gap: 2, minHeight: 0 }}
-      >
+      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, minHeight: 0 }}>
         {/* Header: if new => "Add Query", else => "Edit Query" */}
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="h6">
@@ -267,14 +353,30 @@ export function QueryModal({
                       >
                         <pre style={{ margin: 0 }}>{localSql}</pre>
                       </Box>
+
+                      {/* REPLACED "Do Something" BUTTON WITH "Open Query" DROPDOWN */}
                       <Button
                         variant="contained"
-                        onClick={() =>
-                          alert(`Run or do something with this query: ${localSql}`)
-                        }
+                        onClick={handleMenuClick}
                       >
-                        Do Something
+                        Open Query
                       </Button>
+                      <Menu
+                        anchorEl={anchorEl}
+                        open={menuOpen}
+                        onClose={handleMenuClose}
+                      >
+                        <MenuItem
+                          onClick={() => {
+                            handleOpenLookerStudio(localSql);
+                            handleMenuClose();
+                          }}
+                        >
+                          Looker Studio
+                        </MenuItem>
+                        <MenuItem disabled>Tableau (coming soon)</MenuItem>
+                        <MenuItem disabled>Power BI (coming soon)</MenuItem>
+                      </Menu>
                     </>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
@@ -289,14 +391,30 @@ export function QueryModal({
                     multiline
                     minRows={4}
                     value={localSql}
-                    onChange={(e) => setLocalSql(e.target.value)}
+                    onChange={(e) => {
+                      setLocalSql(e.target.value);
+                      // Reset the test status if user changes the query
+                      setTestQueryStatus("idle");
+                      setTestQueryErrorMessage("");
+                    }}
                   />
+
+                  {/* Test Query Button - calls /dry_run */}
                   <Button
                     variant="contained"
-                    onClick={() => alert(`Testing your updated SQL: ${localSql}`)}
+                    color={testQueryStatus === "success" ? "success" : "primary"}
+                    onClick={handleTestQuery}
                   >
-                    Test Query
+                    {testQueryStatus === "success"
+                      ? `Query Valid - ${dryRunBytes}`
+                      : "Test Query"}
                   </Button>
+
+                  {testQueryStatus === "error" && testQueryErrorMessage && (
+                    <Typography color="error" variant="body2">
+                      {testQueryErrorMessage}
+                    </Typography>
+                  )}
                 </Box>
               )}
             </Card>
