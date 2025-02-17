@@ -15,64 +15,67 @@ import {
   Stack,
   Switch,
   Typography,
-  Menu,
-  MenuItem,
   Checkbox,
-  ListItemIcon,
-  ListItemText,
+  Button,    // <--- import Button
 } from '@mui/material';
 import { MagnifyingGlass, PencilSimple } from '@phosphor-icons/react';
 
+import TablePagination from '@mui/material/TablePagination';
 import { DataTable } from '@/components/core/data-table';
-import type { ColumnDef } from '@/components/core/data-table';
 import { Option } from '@/components/core/option';
 
-// Pagination from MUI
-import TablePagination from '@mui/material/TablePagination';
-
-// Context + Hook
 import { SchemaContext } from '@/components/dashboard/layout/SchemaContext';
 import { useFlattenedFields } from '@/hooks/utils/useFlattenedFields';
 import type { FlattenedField } from '@/hooks/utils/types';
+import type { ColumnDef } from '@/components/core/data-table';
 
-/**
- * Table5 with:
- *   1) Filters (search, dataset, table, missing desc)
- *   2) Pagination
- *   3) Select Columns (a button that toggles a menu)
- */
+import { useQueryDrawer } from '@/components/dashboard/chat/context/query-drawer-context';
+
 export function Table5() {
-  //
-  // 1) Hooks at the top, unconditionally
-  //
   const { selectedSchemaName } = React.useContext(SchemaContext);
   const { data = [], isLoading, error } = useFlattenedFields(selectedSchemaName);
 
+  // from Query Drawer context
+  const {
+    columns,
+    addColumnToQuery,
+    removeColumnFromQuery,
+    openDrawer,
+  } = useQueryDrawer();
+
+  // Local states for filtering
   const [searchQuery, setSearchQuery] = React.useState('');
   const [tableFilter, setTableFilter] = React.useState('');
   const [datasetFilter, setDatasetFilter] = React.useState('');
   const [missingDescription, setMissingDescription] = React.useState(false);
 
-  // For pagination
+  // Pagination
   const [currentPage, setCurrentPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5); // default 5
+  const [rowsPerPage, setRowsPerPage] = React.useState(5);
 
-  // "Select Columns" menu anchor
-  const [anchorElColumns, setAnchorElColumns] = React.useState<null | HTMLElement>(null);
-  const openColumns = Boolean(anchorElColumns);
-  function handleMenuOpenColumns(event: React.MouseEvent<HTMLButtonElement>) {
-    setAnchorElColumns(event.currentTarget);
-  }
-  function handleMenuCloseColumns() {
-    setAnchorElColumns(null);
-  }
-
-  // 2) Build the base columns in a memo
+  // Columns
   const baseColumns = React.useMemo<ColumnDef<FlattenedField>[]>(() => {
     return [
       {
+        name: 'Select Field',
+        align: 'center',
+        width: '60px',
+        formatter: (row) => (
+          <Checkbox
+            size="small"
+            onChange={(e) => {
+              if (e.target.checked) {
+                const combinedName = `${row.table_name}.${row.column_name}`;
+                addColumnToQuery(combinedName);
+              } else {
+                removeColumnFromQuery(`${row.table_name}.${row.column_name}`);
+              }
+            }}
+          />
+        ),
+      },
+      {
         name: 'Dataset',
-        field: undefined, // not strictly needed
         formatter: (row) => row.table_schema,
         width: '160px',
       },
@@ -127,40 +130,24 @@ export function Table5() {
         ),
       },
     ];
-  }, []);
+  }, [addColumnToQuery, removeColumnFromQuery]);
 
-  // We store a local array of columns with "isVisible"
-  const [columnsWithVisibility, setColumnsWithVisibility] = React.useState<
-    (ColumnDef<FlattenedField> & { isVisible: boolean })[]
-  >([]);
+  // For filters
+  const uniqueTables = React.useMemo(
+    () => Array.from(new Set(data.map((f) => f.table_name))),
+    [data]
+  );
+  const uniqueDatasets = React.useMemo(
+    () => Array.from(new Set(data.map((f) => f.table_schema))),
+    [data]
+  );
 
-  // On mount (or if baseColumns changes), initialize columnsWithVisibility
-  React.useEffect(() => {
-    if (columnsWithVisibility.length === 0) {
-      setColumnsWithVisibility(
-        baseColumns.map((col) => ({
-          ...col,
-          isVisible: true,
-        }))
-      );
-    }
-  }, [baseColumns, columnsWithVisibility.length]);
-
-  // 3) Create your unique tables/datasets from data
-  const uniqueTables = React.useMemo(() => {
-    return Array.from(new Set(data.map((f) => f.table_name)));
-  }, [data]);
-
-  const uniqueDatasets = React.useMemo(() => {
-    return Array.from(new Set(data.map((f) => f.table_schema)));
-  }, [data]);
-
-  // 4) Filter the data
   const filteredRows = React.useMemo(() => {
     return data.filter((row) => {
       if (tableFilter && row.table_name !== tableFilter) return false;
       if (datasetFilter && row.table_schema !== datasetFilter) return false;
       if (missingDescription && row.description) return false;
+
       if (searchQuery) {
         const lowerName = row.column_name.toLowerCase();
         if (!lowerName.includes(searchQuery.toLowerCase())) {
@@ -171,23 +158,19 @@ export function Table5() {
     });
   }, [data, tableFilter, datasetFilter, missingDescription, searchQuery]);
 
-  // 5) Pagination logic
   const totalCount = filteredRows.length;
   const startIndex = currentPage * rowsPerPage;
   const paginatedRows = filteredRows.slice(startIndex, startIndex + rowsPerPage);
 
-  // If the user changes the page
-  function handlePageChange(_event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) {
+  function handlePageChange(_e: React.MouseEvent<HTMLButtonElement> | null, newPage: number) {
     setCurrentPage(newPage);
   }
 
-  // If the user changes rows-per-page
-  function handleRowsPerPageChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  function handleRowsPerPageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setRowsPerPage(parseInt(e.target.value, 10));
     setCurrentPage(0);
   }
 
-  // 6) If loading/error, return early
   if (isLoading) {
     return (
       <Box sx={{ p: 3 }}>
@@ -206,20 +189,6 @@ export function Table5() {
     );
   }
 
-  // 7) Visible columns
-  const visibleColumns = columnsWithVisibility.filter((col) => col.isVisible);
-
-  function handleToggleColumn(index: number) {
-    setColumnsWithVisibility((prev) => {
-      const copy = [...prev];
-      copy[index].isVisible = !copy[index].isVisible;
-      return copy;
-    });
-  }
-
-  //
-  // 8) Render the final UI
-  //
   return (
     <Box sx={{ bgcolor: 'var(--mui-palette-background-level1)', p: 3 }}>
       <Card>
@@ -229,7 +198,6 @@ export function Table5() {
           spacing={2}
           sx={{ alignItems: 'center', flexWrap: 'wrap', p: 3 }}
         >
-          {/* Search by field name */}
           <OutlinedInput
             placeholder="Search fields"
             value={searchQuery}
@@ -242,7 +210,6 @@ export function Table5() {
             sx={{ maxWidth: '100%', width: '300px' }}
           />
 
-          {/* Table filter */}
           <Select
             value={tableFilter}
             onChange={(e) => setTableFilter(e.target.value)}
@@ -257,7 +224,6 @@ export function Table5() {
             ))}
           </Select>
 
-          {/* Dataset filter */}
           <Select
             value={datasetFilter}
             onChange={(e) => setDatasetFilter(e.target.value)}
@@ -272,7 +238,6 @@ export function Table5() {
             ))}
           </Select>
 
-          {/* Missing Description toggle */}
           <FormControlLabel
             control={
               <Switch
@@ -282,24 +247,22 @@ export function Table5() {
             }
             label="Missing Description"
           />
-
-          {/* A button to open "Select Columns" menu */}
-
         </Stack>
 
         <Divider />
 
-        {/* The DataTable */}
+        {/* DataTable */}
         <Box sx={{ overflowX: 'auto' }}>
           <DataTable<FlattenedField>
-            columns={visibleColumns}
+            columns={baseColumns}
             rows={paginatedRows}
-            selectable
+            // selectable
           />
         </Box>
 
-        {/* TablePagination component */}
         <Divider />
+
+        {/* Pagination */}
         <TablePagination
           component="div"
           count={totalCount}
@@ -309,6 +272,18 @@ export function Table5() {
           onRowsPerPageChange={handleRowsPerPageChange}
           rowsPerPageOptions={[5, 10, 25]}
         />
+
+        {/*  Add a button for "View Query" at the bottom (or top). */}
+        <Divider />
+        <Stack direction="row" justifyContent="flex-end" sx={{ p: 2 }}>
+          <Button
+            variant="contained"
+            disabled={columns.length === 0}
+            onClick={() => openDrawer()}
+          >
+            View Query
+          </Button>
+        </Stack>
       </Card>
     </Box>
   );
