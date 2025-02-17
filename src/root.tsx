@@ -32,6 +32,7 @@ import { SchemaProvider } from  '@/components/dashboard/layout/SchemaContext';
 import { QueryDrawerProvider } from '@/components/dashboard/chat/context/query-drawer-context';
 
 import { GlobalQueryDrawer } from '@/components/dashboard/GlobalQueryDrawer';
+import { WebLLMProvider } from "./components/dashboard/web-llm-engine-context";
 
 const metadata = { title: appConfig.name } satisfies Metadata;
 
@@ -87,11 +88,14 @@ export function Root({ children }: RootProps): React.JSX.Element {
 									<ReactQueryProvider>
                       <SchemaProvider>
                       <ScoreProvider>
+				
 					  <QueryDrawerProvider>
 					  <GlobalQueryDrawer />
 										{children}
 										</QueryDrawerProvider>
+										
 										</ScoreProvider>
+										
                       </SchemaProvider>
                     </ReactQueryProvider>
 										<SettingsButton />

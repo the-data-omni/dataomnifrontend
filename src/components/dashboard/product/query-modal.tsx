@@ -10,7 +10,6 @@ import DialogContent from "@mui/material/DialogContent";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -19,11 +18,16 @@ import { PencilSimple as PencilSimpleIcon } from "@phosphor-icons/react/dist/ssr
 import { X as XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import { useNavigate } from "react-router-dom";
 
+import { TextField } from "@mui/material";
 import { paths } from "@/paths";
 import { dayjs } from "@/lib/dayjs";
 import { toast } from "@/components/core/toaster";
 import { PropertyItem } from "@/components/core/property-item";
 import { PropertyList } from "@/components/core/property-list";
+
+/* ---- Monaco + SQL Formatter ---- */
+import Editor, { BeforeMount, Monaco } from "@monaco-editor/react";
+import { format } from "sql-formatter";
 
 /** The Query interface, including optional fields. */
 interface Query {
@@ -64,37 +68,53 @@ function parseBqErrorMessage(rawMsg: string): string {
 }
 
 /**
- * QueryModal => used for both adding a new query (no `query` prop)
- * or editing an existing query (with `query` prop).
+ * Auto-formatting for the Monaco SQL content using sql-formatter,
+ * registering a DocumentFormattingEditProvider for "sql" language.
  */
+function handleEditorWillMount(monaco: Monaco): void {
+  monaco.languages.registerDocumentFormattingEditProvider("sql", {
+    provideDocumentFormattingEdits(model) {
+      const originalText = model.getValue();
+      const formattedText = format(originalText, {
+        language: "bigquery", // important for BigQuery syntax
+        tabWidth: 2,
+        keywordCase: "upper",
+      });
+      return [
+        {
+          range: model.getFullModelRange(),
+          text: formattedText,
+        },
+      ];
+    },
+  });
+}
+
 export function QueryModal({
   open,
   query,
   onClose,
 }: ProductModalProps): React.JSX.Element | null {
-  /* ---------------------------------------------
-   * HOOKS / STATE
-   * --------------------------------------------- */
   const navigate = useNavigate();
 
   // Distinguish "Add" vs "Edit": if no `query` is passed, we’re in "Add" mode
   const isNew = !query?.id;
 
-  // Whether we are editing (text fields) or showing read-only
-  // If adding new, we start editing immediately. If editing existing, start read-only.
+  // Whether we are editing or read-only
   const [editing, setEditing] = React.useState(isNew);
 
-  // Local states for the fields
+  // Local states for fields
   const [localQuestion, setLocalQuestion] = React.useState("");
   const [localStatementType, setLocalStatementType] = React.useState("");
   const [localSql, setLocalSql] = React.useState("");
 
-  // Track dry-run status and message/bytes
-  const [testQueryStatus, setTestQueryStatus] = React.useState<"idle" | "success" | "error">("idle");
-  const [dryRunBytes, setDryRunBytes] = React.useState<string>("");
-  const [testQueryErrorMessage, setTestQueryErrorMessage] = React.useState<string>("");
+  // Dry-run / Validate Query states
+  const [testQueryStatus, setTestQueryStatus] =
+    React.useState<"idle" | "success" | "error">("idle");
+  const [dryRunBytes, setDryRunBytes] = React.useState("");
+  const [testQueryErrorMessage, setTestQueryErrorMessage] = React.useState("");
 
-  // Handle menu for "Open Query"
+  // "Open Query" menu for Looker Studio, etc.
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const menuOpen = Boolean(anchorEl);
 
@@ -106,7 +126,6 @@ export function QueryModal({
   };
 
   // Example function to open Looker Studio with the current localSql
-  // You'd customize this link for your environment:
   function handleOpenLookerStudio(sql: string) {
     const baseUrl = "https://lookerstudio.google.com/reporting/create";
     const mode = "edit";
@@ -126,13 +145,22 @@ export function QueryModal({
     window.open(finalUrl, "_blank");
   }
 
-  // Sync when `query` changes
+  // Whenever `query` changes, load its fields into local state
   React.useEffect(() => {
     if (query) {
+      // Format the existing/historical query using sql-formatter
+      const rawSql = query.sql ?? "";
+      const formattedSql = format(rawSql, {
+        language: "bigquery",
+        tabWidth: 2,
+        keywordCase: "upper",
+      });
+
       setLocalQuestion(query.question ?? "");
       setLocalStatementType(query.statementType ?? "");
-      setLocalSql(query.sql ?? "");
-      // If existing query, default to read-only
+      setLocalSql(formattedSql);
+
+      // If existing query => read-only by default, else editing
       setEditing(isNew);
     } else {
       // If no query => new
@@ -154,7 +182,7 @@ export function QueryModal({
 
   // handle "Save"
   const handleSave = React.useCallback(() => {
-    // In real code, call an API or update React Query cache
+    // In real code, you'd call an API or mutate local store
     if (isNew) {
       toast.success(`Created new query: ${localQuestion}`);
     } else {
@@ -167,9 +195,16 @@ export function QueryModal({
   // handle "Cancel" => revert local fields
   const handleCancel = React.useCallback(() => {
     if (query) {
+      // Reset to original
       setLocalQuestion(query.question ?? "");
       setLocalStatementType(query.statementType ?? "");
-      setLocalSql(query.sql ?? "");
+      setLocalSql(
+        format(query.sql ?? "", {
+          language: "bigquery",
+          tabWidth: 2,
+          keywordCase: "upper",
+        })
+      );
       setEditing(false);
     } else {
       // If truly new, user might want to close entirely
@@ -177,7 +212,7 @@ export function QueryModal({
     }
   }, [query, handleClose]);
 
-  // Function to test/dry-run query
+  // Test/dry-run the current localSql
   const handleTestQuery = React.useCallback(async () => {
     try {
       setTestQueryStatus("idle");
@@ -209,10 +244,10 @@ export function QueryModal({
     }
   }, [localSql]);
 
-  // If modal not open, don’t render anything
+  // Only render if modal is open
   if (!open) return null;
 
-  // Fallback data for read-only
+  // fallback data for read-only
   const fallbackId = query?.id ?? "NO-ID";
   const fallbackCount = query?.count ?? 0;
   const fallbackCreated = query?.createdAt
@@ -247,7 +282,7 @@ export function QueryModal({
         </Stack>
 
         <Stack spacing={3} sx={{ flex: "1 1 auto", overflowY: "auto" }}>
-          {/* Main "Details" Card */}
+          {/* Details Card */}
           <Stack spacing={3}>
             <Stack
               direction="row"
@@ -256,7 +291,7 @@ export function QueryModal({
             >
               <Typography variant="h6">Details</Typography>
 
-              {/* If not new and not editing => show "Edit" button */}
+              {/* If not new and not editing => "Edit" button */}
               {!isNew && !editing ? (
                 <Button
                   color="secondary"
@@ -267,7 +302,7 @@ export function QueryModal({
                 </Button>
               ) : null}
 
-              {/* If editing => show "Save" and "Cancel" */}
+              {/* If editing => "Save" + "Cancel" */}
               {editing && (
                 <Stack direction="row" spacing={2}>
                   <Button variant="contained" onClick={handleSave}>
@@ -281,7 +316,6 @@ export function QueryModal({
             </Stack>
 
             <Card sx={{ borderRadius: 1 }} variant="outlined">
-              {/* If not editing => read-only, else => text fields */}
               {!editing ? (
                 <PropertyList
                   divider={<Divider />}
@@ -311,6 +345,9 @@ export function QueryModal({
                 </PropertyList>
               ) : (
                 <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    ID: {fallbackId}
+                  </Typography>
                   <TextField
                     label="Question"
                     value={localQuestion}
@@ -335,29 +372,31 @@ export function QueryModal({
             </Card>
           </Stack>
 
-          {/* Full Query section */}
+          {/* Full Query Section */}
           <Stack spacing={3}>
             <Typography variant="h6">Full Query</Typography>
             <Card sx={{ borderRadius: 1 }} variant="outlined">
               {!editing ? (
-                <Box sx={{ p: 2, borderTop: "1px solid", borderColor: "divider" }}>
+                <Box sx={{ p: 2 }}>
                   {localSql ? (
                     <>
-                      <Box
-                        sx={{
-                          bgcolor: "#f9f9f9",
-                          p: 2,
-                          borderRadius: 1,
-                          mb: 2,
+                      {/* READ-ONLY MONACO */}
+                      <Editor
+                        height="200px"
+                        defaultLanguage="sql"
+                        value={localSql}
+                        beforeMount={handleEditorWillMount}
+                        options={{
+                          readOnly: true,
+                          minimap: { enabled: false },
+                          wordWrap: "on",
                         }}
-                      >
-                        <pre style={{ margin: 0 }}>{localSql}</pre>
-                      </Box>
+                      />
 
-                      {/* REPLACED "Do Something" BUTTON WITH "Open Query" DROPDOWN */}
                       <Button
                         variant="contained"
                         onClick={handleMenuClick}
+                        sx={{ mt: 2 }}
                       >
                         Open Query
                       </Button>
@@ -386,20 +425,27 @@ export function QueryModal({
                 </Box>
               ) : (
                 <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-                  <TextField
-                    label="SQL"
-                    multiline
-                    minRows={4}
+                  {/* EDITABLE MONACO */}
+                  <Editor
+                    height="200px"
+                    defaultLanguage="sql"
                     value={localSql}
-                    onChange={(e) => {
-                      setLocalSql(e.target.value);
-                      // Reset the test status if user changes the query
-                      setTestQueryStatus("idle");
-                      setTestQueryErrorMessage("");
+                    beforeMount={handleEditorWillMount}
+                    onChange={(val) => {
+                      if (typeof val === "string") {
+                        setLocalSql(val);
+                        // Reset test status if user changes the SQL
+                        setTestQueryStatus("idle");
+                        setTestQueryErrorMessage("");
+                      }
+                    }}
+                    options={{
+                      minimap: { enabled: false },
+                      wordWrap: "on",
                     }}
                   />
 
-                  {/* Test Query Button - calls /dry_run */}
+                  {/* Validate Query button (dry-run) */}
                   <Button
                     variant="contained"
                     color={testQueryStatus === "success" ? "success" : "primary"}
@@ -407,7 +453,7 @@ export function QueryModal({
                   >
                     {testQueryStatus === "success"
                       ? `Query Valid - ${dryRunBytes}`
-                      : "Test Query"}
+                      : "Validate Query"}
                   </Button>
 
                   {testQueryStatus === "error" && testQueryErrorMessage && (

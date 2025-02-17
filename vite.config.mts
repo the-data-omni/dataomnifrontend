@@ -67,6 +67,15 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    proxy: {
+      // Any request to "/api" will be forwarded to "http://localhost:5000"
+      "/api/generate_sql": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        // If you want to rewrite paths (optional):
+        //   rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   },
   preview: {
     port: 3000,
