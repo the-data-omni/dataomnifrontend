@@ -60,4 +60,9 @@ export interface FlattenedField {
   rounding_mode: string | null;
   primary_key: boolean;
   foreign_key: boolean;
+  field_mode:string;
+  access_instructions?: {
+    from_clause: string;
+    select_expr: string;
+  };
 }

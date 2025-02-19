@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useFlattenedFields } from "./useFlattenedFields";
 import { SchemaContext } from "@/components/dashboard/layout/SchemaContext";
 
+
 // --------------------
 // Types
 // --------------------
@@ -136,7 +137,9 @@ export function ScoreProvider({ children }: { children: React.ReactNode }) {
           paramsOverride?.weights_override ?? scoreParams.weights_override,
       };
 
-      const res = await fetch("http://127.0.0.1:5000/score_schema", {
+      const apiUrl = import.meta.env.VITE_API_URL;
+
+      const res = await fetch("${apiUrl}/score_schema", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),

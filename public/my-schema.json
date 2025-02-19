@@ -615,4 +615,851 @@
           "description": "The current net monthly one-time revenue for the customer based on orders, taking into account discounts and refunds. This is the one-time charges divided equally amongst all orders stemming from the same charge."
         }
       ]
-    }]
+    },
+      {
+        "table_name": "events_*",
+        "table_link": "https://support.google.com/analytics/answer/7029846",
+        "description": "Each record represents a single event collected by Google Analytics 4, including user, device, and other metadata.",
+        "relation": "bigquery.<PROJECT_ID>.<DATASET_ID>.google_analytics__events",
+        "table_description": "Contains event-level data exported from Google Analytics 4.",
+        "columns": [
+          {
+            "column_name": "event_date",
+            "description": "The date on which the event was logged, in the format YYYYMMDD (local time)."
+          },
+          {
+            "column_name": "event_timestamp",
+            "description": "The timestamp (in microseconds) marking when the event was logged on the client."
+          },
+          {
+            "column_name": "event_name",
+            "description": "The name of the event (e.g. 'page_view', 'purchase')."
+          },
+          {
+            "column_name": "event_params.key",
+            "description": "The parameter key included with the event (part of the repeated event_params record)."
+          },
+          {
+            "column_name": "event_params.value.string_value",
+            "description": "A string value associated with event_params.key."
+          },
+          {
+            "column_name": "event_params.value.int_value",
+            "description": "An integer value associated with event_params.key."
+          },
+          {
+            "column_name": "event_params.value.float_value",
+            "description": "A float value associated with event_params.key."
+          },
+          {
+            "column_name": "event_params.value.double_value",
+            "description": "A double-precision float value associated with event_params.key."
+          },
+          {
+            "column_name": "event_params.value.set_timestamp_micros",
+            "description": "When this parameter value was set (in microseconds)."
+          },
+          {
+            "column_name": "event_previous_timestamp",
+            "description": "The timestamp (in microseconds) of the previous event by the same user."
+          },
+          {
+            "column_name": "event_value_in_usd",
+            "description": "The monetary value (in USD) of the event (if applicable, e.g. purchase)."
+          },
+          {
+            "column_name": "event_bundle_sequence_id",
+            "description": "Index of this event in the session bundle (if events were bundled)."
+          },
+          {
+            "column_name": "event_server_timestamp_offset",
+            "description": "Difference (in microseconds) between event_timestamp and when data was processed by the Analytics server."
+          },
+          {
+            "column_name": "user_id",
+            "description": "An identifier provided by your website/app to uniquely identify a user."
+          },
+          {
+            "column_name": "user_pseudo_id",
+            "description": "A pseudo-identifier assigned by Analytics to track users when user_id is not set."
+          },
+          {
+            "column_name": "privacy_info.analytics_storage",
+            "description": "Boolean indicating whether analytics cookies/storage were allowed for the event."
+          },
+          {
+            "column_name": "privacy_info.ads_storage",
+            "description": "Boolean indicating whether ads cookies/storage were allowed for the event."
+          },
+          {
+            "column_name": "privacy_info.uses_transient_token",
+            "description": "Boolean indicating whether the event used a transient token."
+          },
+          {
+            "column_name": "user_properties.key",
+            "description": "A key for a user property (part of the repeated user_properties record)."
+          },
+          {
+            "column_name": "user_properties.value.string_value",
+            "description": "A string value for the user property."
+          },
+          {
+            "column_name": "user_properties.value.int_value",
+            "description": "An integer value for the user property."
+          },
+          {
+            "column_name": "user_properties.value.float_value",
+            "description": "A float value for the user property."
+          },
+          {
+            "column_name": "user_properties.value.double_value",
+            "description": "A double-precision float value for the user property."
+          },
+          {
+            "column_name": "user_properties.value.set_timestamp_micros",
+            "description": "The time (in microseconds) when this user property was set."
+          },
+          {
+            "column_name": "user_first_touch_timestamp",
+            "description": "The timestamp (in microseconds) of the user's first recorded event."
+          },
+          {
+            "column_name": "user_ltv.revenue",
+            "description": "Lifetime value revenue associated with the user (in the user’s preferred currency)."
+          },
+          {
+            "column_name": "user_ltv.currency",
+            "description": "Three-letter ISO_4217 currency code for the user_ltv.revenue field."
+          },
+          {
+            "column_name": "device.category",
+            "description": "Category of the device (desktop, tablet, or mobile)."
+          },
+          {
+            "column_name": "device.mobile_brand_name",
+            "description": "Brand of the mobile device (e.g., Apple, Samsung)."
+          },
+          {
+            "column_name": "device.mobile_model_name",
+            "description": "Model of the mobile device (e.g., iPhone 12)."
+          },
+          {
+            "column_name": "device.mobile_marketing_name",
+            "description": "Marketing name for the device if available (e.g., Galaxy S21)."
+          },
+          {
+            "column_name": "device.mobile_os_hardware_model",
+            "description": "Information about the device's operating system and hardware model."
+          },
+          {
+            "column_name": "device.operating_system",
+            "description": "Operating system of the device (e.g., iOS, Android)."
+          },
+          {
+            "column_name": "device.operating_system_version",
+            "description": "Version of the operating system (e.g., 14.4)."
+          },
+          {
+            "column_name": "device.vendor_id",
+            "description": "Device vendor identifier, if available."
+          },
+          {
+            "column_name": "device.advertising_id",
+            "description": "The Advertising ID (e.g., IDFA on iOS, or AdID on Android)."
+          },
+          {
+            "column_name": "device.language",
+            "description": "Language setting of the device (e.g., en-us, fr)."
+          },
+          {
+            "column_name": "device.is_limited_ad_tracking",
+            "description": "Boolean indicating if the user has enabled limit ad tracking."
+          },
+          {
+            "column_name": "device.time_zone_offset_seconds",
+            "description": "Time zone offset from UTC in seconds."
+          },
+          {
+            "column_name": "device.browser",
+            "description": "Name of the browser (e.g., Chrome, Safari)."
+          },
+          {
+            "column_name": "device.browser_version",
+            "description": "Browser version string (e.g., 89.0.4389.105)."
+          },
+          {
+            "column_name": "device.web_info.browser",
+            "description": "Browser name for web events (similar to device.browser)."
+          },
+          {
+            "column_name": "device.web_info.browser_version",
+            "description": "Browser version for web events (similar to device.browser_version)."
+          },
+          {
+            "column_name": "device.web_info.hostname",
+            "description": "Host name for web events (e.g., yoursite.com)."
+          },
+          {
+            "column_name": "device.screen_resolution",
+            "description": "Screen resolution of the device (e.g., 1920x1080)."
+          },
+          {
+            "column_name": "geo.continent",
+            "description": "User’s continent (e.g., Americas, Europe)."
+          },
+          {
+            "column_name": "geo.country",
+            "description": "User’s country (based on IP geolocation)."
+          },
+          {
+            "column_name": "geo.region",
+            "description": "User’s region (e.g., state or province)."
+          },
+          {
+            "column_name": "geo.sub_continent",
+            "description": "User’s sub-continent (e.g., Northern Europe)."
+          },
+          {
+            "column_name": "geo.metro",
+            "description": "Metro code of the user’s location (mainly for the US)."
+          },
+          {
+            "column_name": "geo.city",
+            "description": "User’s city (based on IP geolocation)."
+          },
+          {
+            "column_name": "geo.city_id",
+            "description": "A numeric ID for the city (internal to Google)."
+          },
+          {
+            "column_name": "geo.latitude",
+            "description": "Approximate device latitude (if available)."
+          },
+          {
+            "column_name": "geo.longitude",
+            "description": "Approximate device longitude (if available)."
+          },
+          {
+            "column_name": "geo.network",
+            "description": "The user’s network provider or ISP."
+          },
+          {
+            "column_name": "app_info.id",
+            "description": "App’s bundle ID (e.g., com.example.app)."
+          },
+          {
+            "column_name": "app_info.version",
+            "description": "App’s version (e.g., 2.1.0)."
+          },
+          {
+            "column_name": "app_info.install_store",
+            "description": "Store the app was installed from (e.g., Google Play)."
+          },
+          {
+            "column_name": "app_info.firebase_app_id",
+            "description": "The Firebase App ID associated with the event."
+          },
+          {
+            "column_name": "traffic_source.name",
+            "description": "Marketing campaign source (e.g., google, newsletter)."
+          },
+          {
+            "column_name": "traffic_source.medium",
+            "description": "Marketing campaign medium (e.g., cpc, email)."
+          },
+          {
+            "column_name": "traffic_source.source",
+            "description": "Combined source that might show as '(direct)' if unknown."
+          },
+          {
+            "column_name": "stream_id",
+            "description": "An identifier for the data stream where this event was sent."
+          },
+          {
+            "column_name": "platform",
+            "description": "Platform of the event (e.g., web, ios, android)."
+          },
+          {
+            "column_name": "event_dimensions",
+            "description": "Additional event dimensions (if any) that are not part of event_params."
+          },
+          {
+            "column_name": "ecommerce.total_item_quantity",
+            "description": "Sum of quantities for all items in this event (if ecommerce data is present)."
+          },
+          {
+            "column_name": "ecommerce.purchase_revenue_in_usd",
+            "description": "Purchase revenue (in USD) for ecommerce events."
+          },
+          {
+            "column_name": "ecommerce.purchase_tax_amount_in_usd",
+            "description": "Tax amount (in USD) for the purchase."
+          },
+          {
+            "column_name": "ecommerce.shipping_value_in_usd",
+            "description": "Shipping cost (in USD) for the purchase."
+          },
+          {
+            "column_name": "ecommerce.refund_value_in_usd",
+            "description": "Amount refunded (in USD) for this ecommerce event."
+          },
+          {
+            "column_name": "items.item_id",
+            "description": "Unique ID for the item in the ecommerce event."
+          },
+          {
+            "column_name": "items.item_name",
+            "description": "Name of the item."
+          },
+          {
+            "column_name": "items.item_brand",
+            "description": "Brand of the item."
+          },
+          {
+            "column_name": "items.item_variant",
+            "description": "Variant of the item (e.g., color, size)."
+          },
+          {
+            "column_name": "items.item_category",
+            "description": "Item category or product category. Some exports include item_category2 through item_category5."
+          },
+          {
+            "column_name": "items.item_category2",
+            "description": "Secondary item category."
+          },
+          {
+            "column_name": "items.item_category3",
+            "description": "Tertiary item category."
+          },
+          {
+            "column_name": "items.item_category4",
+            "description": "Quaternary item category."
+          },
+          {
+            "column_name": "items.item_category5",
+            "description": "Quinary item category."
+          },
+          {
+            "column_name": "items.price_in_usd",
+            "description": "Price of a single item (in USD)."
+          },
+          {
+            "column_name": "items.quantity",
+            "description": "The number of items purchased or returned in this event."
+          },
+          {
+            "column_name": "items.coupon",
+            "description": "Coupon code applied to this item (if any)."
+          },
+          {
+            "column_name": "items.affiliation",
+            "description": "Affiliation or store name where transaction occurred."
+          },
+          {
+            "column_name": "items.location_id",
+            "description": "Location ID (e.g., store or physical location) for the event."
+          },
+          {
+            "column_name": "items.item_list_id",
+            "description": "The (optional) ID of the item list in which the item was presented."
+          },
+          {
+            "column_name": "items.item_list_name",
+            "description": "The (optional) name of the item list in which the item was presented."
+          },
+          {
+            "column_name": "items.index",
+            "description": "The position of the item in the list or impression (1-based)."
+          }
+        ]
+      },
+      
+        {
+          "table_name": "ga_sessions_*",
+          "table_link": "https://support.google.com/analytics/answer/3437719",
+          "description": "Each record (row) represents a single session in a Universal Analytics 360 property, with nested and repeated records for hits and other detailed data.",
+          "relation": "bigquery.<PROJECT_ID>.<DATASET_ID>.ga_sessions_YYYYMMDD",
+          "table_description": "Contains session-level data exported from Google Analytics 360 (Universal Analytics). One row per session.",
+          "columns": [
+            {
+              "column_name": "fullVisitorId",
+              "description": "A unique, anonymous identifier for the user. Corresponds to the Client ID in UA."
+            },
+            {
+              "column_name": "visitId",
+              "description": "A session identifier for this user. Typically derived from the start time of the session."
+            },
+            {
+              "column_name": "visitNumber",
+              "description": "The sequential session index for this user (e.g., the 1st session, 2nd session, etc.)."
+            },
+            {
+              "column_name": "visitStartTime",
+              "description": "The timestamp (in Unix seconds) for when the session began."
+            },
+            {
+              "column_name": "date",
+              "description": "The date (YYYYMMDD) for the session based on the property’s timezone."
+            },
+            {
+              "column_name": "userId",
+              "description": "The User ID associated with this session (if set in your Universal Analytics code)."
+            },
+            {
+              "column_name": "clientId",
+              "description": "The Client ID for this session (if available)."
+            },
+            {
+              "column_name": "channelGrouping",
+              "description": "The default channel grouping (e.g., Organic Search, Direct, Referral, etc.)."
+            },
+            {
+              "column_name": "socialEngagementType",
+              "description": "Indicates whether a session originates from social interaction (e.g., 'Socially Engaged' or 'Not Socially Engaged')."
+            },
+            {
+              "column_name": "customDimensions.index",
+              "description": "Index (number) of the custom dimension set at the session level."
+            },
+            {
+              "column_name": "customDimensions.value",
+              "description": "Value or string set for the corresponding custom dimension index."
+            },
+            {
+              "column_name": "customMetrics.index",
+              "description": "Index (number) of the custom metric set at the session level."
+            },
+            {
+              "column_name": "customMetrics.value",
+              "description": "Value (integer) for the corresponding custom metric index."
+            },
+            {
+              "column_name": "device.browser",
+              "description": "The name of the browser used for this session (e.g., Chrome)."
+            },
+            {
+              "column_name": "device.browserVersion",
+              "description": "The version of the browser used (e.g., 88.0.4324.150)."
+            },
+            {
+              "column_name": "device.operatingSystem",
+              "description": "The operating system used (e.g., Windows, MacOS, iOS, Android)."
+            },
+            {
+              "column_name": "device.operatingSystemVersion",
+              "description": "The version of the operating system (e.g., Windows 10)."
+            },
+            {
+              "column_name": "device.isMobile",
+              "description": "Boolean indicating if the session originated from a mobile device."
+            },
+            {
+              "column_name": "device.mobileDeviceBranding",
+              "description": "Brand of the mobile device (e.g., Apple, Samsung)."
+            },
+            {
+              "column_name": "device.mobileDeviceModel",
+              "description": "Model of the mobile device (e.g., iPhone 12)."
+            },
+            {
+              "column_name": "device.mobileInputSelector",
+              "description": "Type of input for the mobile device (e.g., touch, clickwheel)."
+            },
+            {
+              "column_name": "device.screenResolution",
+              "description": "Screen resolution (e.g., 1920x1080)."
+            },
+            {
+              "column_name": "device.screenColors",
+              "description": "Screen color depth (e.g., 24-bit)."
+            },
+            {
+              "column_name": "device.flashVersion",
+              "description": "Version of Flash installed on the device (if any)."
+            },
+            {
+              "column_name": "device.language",
+              "description": "Language setting of the browser/OS (e.g., en-us)."
+            },
+            {
+              "column_name": "device.javaEnabled",
+              "description": "Boolean indicating if Java is enabled on the browser."
+            },
+            {
+              "column_name": "device.userAgent",
+              "description": "The full User-Agent string for the browser."
+            },
+            {
+              "column_name": "device.deviceCategory",
+              "description": "High-level category of the device (desktop, tablet, or mobile)."
+            },
+            {
+              "column_name": "geoNetwork.continent",
+              "description": "User’s continent (e.g., Americas, Europe)."
+            },
+            {
+              "column_name": "geoNetwork.subContinent",
+              "description": "More specific sub-continent (e.g., Northern America)."
+            },
+            {
+              "column_name": "geoNetwork.country",
+              "description": "User’s country (based on IP geolocation)."
+            },
+            {
+              "column_name": "geoNetwork.region",
+              "description": "User’s region (state or province, if known)."
+            },
+            {
+              "column_name": "geoNetwork.metro",
+              "description": "Metro code for the user’s location (in the US)."
+            },
+            {
+              "column_name": "geoNetwork.city",
+              "description": "User’s city (based on IP geolocation)."
+            },
+            {
+              "column_name": "geoNetwork.cityId",
+              "description": "A numeric ID for the city (internal to Google)."
+            },
+            {
+              "column_name": "geoNetwork.networkDomain",
+              "description": "The network domain of the user’s ISP."
+            },
+            {
+              "column_name": "geoNetwork.latitude",
+              "description": "Approximate latitude of the user’s location."
+            },
+            {
+              "column_name": "geoNetwork.longitude",
+              "description": "Approximate longitude of the user’s location."
+            },
+            {
+              "column_name": "geoNetwork.networkLocation",
+              "description": "The ISP or network provider name."
+            },
+            {
+              "column_name": "trafficSource.campaign",
+              "description": "The name of the marketing campaign (if applicable)."
+            },
+            {
+              "column_name": "trafficSource.source",
+              "description": "Referring source for the session (e.g., google, newsletter)."
+            },
+            {
+              "column_name": "trafficSource.medium",
+              "description": "Marketing medium (e.g., cpc, email, referral)."
+            },
+            {
+              "column_name": "trafficSource.keyword",
+              "description": "Paid search keyword (if available)."
+            },
+            {
+              "column_name": "trafficSource.adContent",
+              "description": "Ad content description or promotional text (if applicable)."
+            },
+            {
+              "column_name": "trafficSource.adwordsClickInfo.campaignId",
+              "description": "Campaign ID from AdWords (if available)."
+            },
+            {
+              "column_name": "trafficSource.adwordsClickInfo.adGroupId",
+              "description": "Ad group ID from AdWords (if available)."
+            },
+            {
+              "column_name": "trafficSource.adwordsClickInfo.gclId",
+              "description": "Google Click ID for auto-tagging (if available)."
+            },
+            {
+              "column_name": "trafficSource.adwordsClickInfo.page",
+              "description": "Page number in the AdWords pagination (if any)."
+            },
+            {
+              "column_name": "trafficSource.adwordsClickInfo.slot",
+              "description": "Ad slot (e.g., top, side) from AdWords (if available)."
+            },
+            {
+              "column_name": "trafficSource.adwordsClickInfo.criteriaParameters",
+              "description": "Additional AdWords targeting criteria (if available)."
+            },
+            {
+              "column_name": "trafficSource.referralPath",
+              "description": "The path of the referring URL (if referral source)."
+            },
+            {
+              "column_name": "totals.visits",
+              "description": "Number of visits in this session. Typically ‘1’ for Universal Analytics."
+            },
+            {
+              "column_name": "totals.hits",
+              "description": "Count of total hits (pageviews, events, etc.) in the session."
+            },
+            {
+              "column_name": "totals.pageviews",
+              "description": "Count of pageviews in the session."
+            },
+            {
+              "column_name": "totals.timeOnSite",
+              "description": "The total time spent by the user during the session (in seconds)."
+            },
+            {
+              "column_name": "totals.bounces",
+              "description": "Indicates if the session was a bounce (1 = bounced)."
+            },
+            {
+              "column_name": "totals.transactions",
+              "description": "Number of ecommerce transactions in the session."
+            },
+            {
+              "column_name": "totals.transactionRevenue",
+              "description": "Total revenue (in micros of the local currency) from ecommerce transactions."
+            },
+            {
+              "column_name": "totals.newVisits",
+              "description": "Indicates a user’s first session on your property (if 1)."
+            },
+            {
+              "column_name": "totals.screenviews",
+              "description": "Total screen views (for mobile app tracking) in the session."
+            },
+            {
+              "column_name": "totals.uniqueScreenviews",
+              "description": "Count of unique screen views in the session."
+            },
+            {
+              "column_name": "totals.goalXXValue",
+              "description": "Goal value (in local currency) for a particular goal (XX = goal index)."
+            },
+            {
+              "column_name": "totals.goalCompletionsAll",
+              "description": "Total count of all goals completed in the session."
+            },
+            {
+              "column_name": "totals.goalXXCompletions",
+              "description": "Number of completions for a particular goal (XX = goal index)."
+            },
+            {
+              "column_name": "totals.sessionQualityDim",
+              "description": "A dimension that estimates session quality based on user engagement."
+            },
+            {
+              "column_name": "hits.hitNumber",
+              "description": "Hit sequence number (1-based) within the session."
+            },
+            {
+              "column_name": "hits.time",
+              "description": "Offset (in milliseconds) from the start of the session when this hit occurred."
+            },
+            {
+              "column_name": "hits.hour",
+              "description": "Hour of the day (0–23) in the property’s local timezone when this hit was logged."
+            },
+            {
+              "column_name": "hits.minute",
+              "description": "Minute of the hour (0–59) in the property’s local timezone when this hit was logged."
+            },
+            {
+              "column_name": "hits.isInteraction",
+              "description": "Boolean indicating if this hit was an interaction event (applies to event hits)."
+            },
+            {
+              "column_name": "hits.isEntrance",
+              "description": "Indicates if this hit was the entrance pageview for the session."
+            },
+            {
+              "column_name": "hits.isExit",
+              "description": "Indicates if this hit was the exit pageview for the session."
+            },
+            {
+              "column_name": "hits.page.pagePath",
+              "description": "The requested page path (e.g., /home)."
+            },
+            {
+              "column_name": "hits.page.hostname",
+              "description": "Hostname used to request the page (e.g., www.example.com)."
+            },
+            {
+              "column_name": "hits.page.pageTitle",
+              "description": "The title of the requested page."
+            },
+            {
+              "column_name": "hits.page.searchKeyword",
+              "description": "Internal search keyword (if the hit is from a site search)."
+            },
+            {
+              "column_name": "hits.page.searchCategory",
+              "description": "Internal search category (if used)."
+            },
+            {
+              "column_name": "hits.page.pagePathLevel1",
+              "description": "Breakdown of the page path at level 1, if page path is hierarchical."
+            },
+            {
+              "column_name": "hits.transaction.transactionId",
+              "description": "Transaction ID for this ecommerce hit."
+            },
+            {
+              "column_name": "hits.transaction.transactionRevenue",
+              "description": "Revenue for the transaction (in micros of the local currency)."
+            },
+            {
+              "column_name": "hits.transaction.transactionTax",
+              "description": "Tax amount for the transaction (in micros)."
+            },
+            {
+              "column_name": "hits.transaction.transactionShipping",
+              "description": "Shipping cost for the transaction (in micros)."
+            },
+            {
+              "column_name": "hits.transaction.affiliation",
+              "description": "Store or affiliation name associated with the transaction."
+            },
+            {
+              "column_name": "hits.item.transactionId",
+              "description": "Transaction ID corresponding to the item (product)."
+            },
+            {
+              "column_name": "hits.item.productName",
+              "description": "Name of the product purchased (or refunded)."
+            },
+            {
+              "column_name": "hits.item.productCategory",
+              "description": "Category of the product (if provided)."
+            },
+            {
+              "column_name": "hits.item.productSku",
+              "description": "SKU or unique ID of the product."
+            },
+            {
+              "column_name": "hits.item.itemQuantity",
+              "description": "Quantity of the product item in this hit."
+            },
+            {
+              "column_name": "hits.item.itemRevenue",
+              "description": "Revenue attributed to this specific item (in micros)."
+            },
+            {
+              "column_name": "hits.appInfo.screenName",
+              "description": "Screen name (mobile app tracking) for this hit."
+            },
+            {
+              "column_name": "hits.appInfo.landingScreenName",
+              "description": "Landing screen name if this is the first screen in the session."
+            },
+            {
+              "column_name": "hits.appInfo.exitScreenName",
+              "description": "Exit screen name if this is the final screen in the session."
+            },
+            {
+              "column_name": "hits.appInfo.screenViews",
+              "description": "Number of times this screen was viewed (usually 1 per screen hit)."
+            },
+            {
+              "column_name": "hits.exceptionInfo.isFatal",
+              "description": "Boolean indicating if an app exception is fatal."
+            },
+            {
+              "column_name": "hits.exceptionInfo.description",
+              "description": "Description of the exception (if provided)."
+            },
+            {
+              "column_name": "hits.eCommerceAction.action_type",
+              "description": "Ecommerce action type (e.g., 'click', 'add', 'purchase')."
+            },
+            {
+              "column_name": "hits.eCommerceAction.option",
+              "description": "Option or label for an ecommerce action (e.g., checkout step option)."
+            },
+            {
+              "column_name": "hits.eCommerceAction.step",
+              "description": "Step number in a multi-step ecommerce checkout process."
+            },
+            {
+              "column_name": "hits.eCommerceAction.option_value",
+              "description": "Additional value associated with the ecommerce action option."
+            },
+            {
+              "column_name": "hits.product.v2ProductName",
+              "description": "Enhanced Ecommerce product name."
+            },
+            {
+              "column_name": "hits.product.v2ProductCategory",
+              "description": "Enhanced Ecommerce product category (may have multiple levels)."
+            },
+            {
+              "column_name": "hits.product.v2ProductBrand",
+              "description": "Brand of the product in Enhanced Ecommerce."
+            },
+            {
+              "column_name": "hits.product.v2ProductPrice",
+              "description": "Price of the product in Enhanced Ecommerce (in micros)."
+            },
+            {
+              "column_name": "hits.product.v2ProductQuantity",
+              "description": "Quantity of the product in Enhanced Ecommerce."
+            },
+            {
+              "column_name": "hits.product.productRevenue",
+              "description": "Revenue derived from this product (in micros)."
+            },
+            {
+              "column_name": "hits.promoId",
+              "description": "Promotion ID if this hit is related to a promo."
+            },
+            {
+              "column_name": "hits.promoName",
+              "description": "Promotion name if this hit is related to a promo."
+            },
+            {
+              "column_name": "hits.promoCreative",
+              "description": "Creative text or ad content for the promotion."
+            },
+            {
+              "column_name": "hits.experiment.experimentId",
+              "description": "ID of the Google Optimize experiment (if applicable)."
+            },
+            {
+              "column_name": "hits.experiment.experimentVariant",
+              "description": "Variant ID the user was exposed to in the experiment."
+            },
+            {
+              "column_name": "hits.contentGroup.contentGroup1",
+              "description": "Content group #1 for this hit (if configured)."
+            },
+            {
+              "column_name": "hits.contentGroup.contentGroup2",
+              "description": "Content group #2 for this hit (if configured)."
+            },
+            {
+              "column_name": "hits.contentGroup.contentGroup3",
+              "description": "Content group #3 for this hit (if configured)."
+            },
+            {
+              "column_name": "hits.contentGroup.contentGroup4",
+              "description": "Content group #4 for this hit (if configured)."
+            },
+            {
+              "column_name": "hits.contentGroup.contentGroup5",
+              "description": "Content group #5 for this hit (if configured)."
+            },
+            {
+              "column_name": "hits.customDimensions.index",
+              "description": "Index of the custom dimension set on this specific hit."
+            },
+            {
+              "column_name": "hits.customDimensions.value",
+              "description": "Value for the custom dimension associated with this hit."
+            },
+            {
+              "column_name": "hits.customMetrics.index",
+              "description": "Index of the custom metric set on this hit."
+            },
+            {
+              "column_name": "hits.customMetrics.value",
+              "description": "Value for the custom metric associated with this hit (usually an integer)."
+            }
+          ]
+        }
+      
+      
+    
+  ]

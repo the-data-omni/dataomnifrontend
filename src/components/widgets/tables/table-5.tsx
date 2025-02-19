@@ -1,4 +1,3 @@
-// table-5.tsx
 "use client";
 
 import * as React from "react";
@@ -20,12 +19,25 @@ import {
   Button,
   TextField,
   Chip,
+  Dialog,
+  DialogContent,
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  Menu,
+  FormGroup,
+  FormControlLabel as MUICheckboxLabel,
+  Collapse
 } from "@mui/material";
 import {
   MagnifyingGlass,
   PencilSimple,
   Check,
   X,
+  List as ListIcon,
+  CaretDown,
+  CaretUp
 } from "@phosphor-icons/react";
 
 import TablePagination from "@mui/material/TablePagination";
@@ -39,13 +51,44 @@ import type { ColumnDef } from "@/components/core/data-table";
 
 import { useQueryDrawer } from "@/components/dashboard/chat/context/query-drawer-context";
 
+/** Small helper to simulate delay, so user sees each step in your multi-step "Get Descriptions" animation. */
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * All possible columns we might show. We’ll reference these names in
+ * the column definitions and also in the column visibility toggles.
+ */
+const ALL_COLUMNS = [
+  "Select Field",
+  "Dataset",
+  "Table Name",
+  "Field Name",
+  "Data Type",
+  "Field Description",
+  "Primary Key",
+  "Foreign Key",
+  "Field Mode",
+  "Actions",
+  "Access Instructions"
+];
+
+const INITIAL_VISIBLE_COLUMNS = [
+  "Select Field",
+  "Dataset",
+  "Table Name",
+  "Field Name",
+  "Field Description"
+];
+
 export function Table5() {
   const { selectedSchemaName } = React.useContext(SchemaContext);
   const { data = [], isLoading, error } = useFlattenedFields(selectedSchemaName);
 
   // From Query Drawer context
   const {
-    columns,             // array of fully qualified column references
+    columns: selectedColumns,
     addColumnToQuery,
     removeColumnFromQuery,
     openDrawer,
@@ -54,15 +97,15 @@ export function Table5() {
   // Local augmented data
   const [augmentedData, setAugmentedData] = React.useState<FlattenedField[]>([]);
 
-  // In-line editing states
+  React.useEffect(() => {
+    setAugmentedData(data);
+  }, [data]);
+
+  // Inline editing states
   const [editingFieldKey, setEditingFieldKey] = React.useState<string | null>(null);
   const [tempDescription, setTempDescription] = React.useState("");
   const [tempPrimaryKey, setTempPrimaryKey] = React.useState<boolean>(false);
   const [tempForeignKey, setTempForeignKey] = React.useState<boolean>(false);
-
-  React.useEffect(() => {
-    setAugmentedData(data);
-  }, [data]);
 
   // Filtering
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -74,7 +117,39 @@ export function Table5() {
   const [currentPage, setCurrentPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
 
-  /* ---------------- EDITING LOGIC ---------------- */
+  // Multi-step "Get Descriptions" dialog states
+  const [descProgress, setDescProgress] = React.useState(0); // 0=idle, 1=scan, 2=found, 3=adding, 4=done
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [descFoundCount, setDescFoundCount] = React.useState(0);
+  const [matchedTables, setMatchedTables] = React.useState<{ dataset: string; tableName: string }[]>(
+    []
+  );
+
+  // Column visibility states
+  const [visibleColumns, setVisibleColumns] = React.useState<string[]>(INITIAL_VISIBLE_COLUMNS);
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+
+  function openMenu(event: React.MouseEvent<HTMLButtonElement>) {
+    setAnchorEl(event.currentTarget);
+  }
+  function closeMenu() {
+    setAnchorEl(null);
+  }
+
+  function toggleColumn(colName: string) {
+    setVisibleColumns((prev) =>
+      prev.includes(colName) ? prev.filter((c) => c !== colName) : [...prev, colName]
+    );
+  }
+
+  // For row expansion of "Access Instructions"
+  const [expandedRow, setExpandedRow] = React.useState<number | null>(null);
+
+  function toggleExpandRow(rowIndex: number) {
+    setExpandedRow((prev) => (prev === rowIndex ? null : rowIndex));
+  }
+
+  // Editing logic for descriptions, PK, FK
   function handleEdit(row: FlattenedField) {
     const rowKey = row.table_name + "." + row.column_name;
     setEditingFieldKey(rowKey);
@@ -84,7 +159,6 @@ export function Table5() {
   }
 
   function handleSaveDescription(fieldKey: string) {
-    // Save changes to augmentedData
     const updated = augmentedData.map((item) => {
       const itemKey = item.table_name + "." + item.column_name;
       if (itemKey === fieldKey) {
@@ -112,32 +186,26 @@ export function Table5() {
     setTempForeignKey(false);
   }
 
-  /* ---------------- BUILDING COLUMN REFS ---------------- */
-  // For wildcard table "events_*", we store just the column as "`colName`"
-  // For normal table, we store "`schema`.`table`.`colName`"
+  // Helper to build a fully qualified reference for the row
   function getFieldRef(row: FlattenedField): string {
-    const hasWildcard = row.table_name.includes("*");
-    if (hasWildcard) {
-      // e.g. "SELECT `my_col` FROM `my_dataset`.`events_*`"
+    if (row.table_name.includes("*")) {
+      // If your table is sharded, you might do something else
       return `\`${row.column_name}\``;
     }
-    // Normal table
     return `\`${row.table_schema}\`.\`${row.table_name}\`.\`${row.column_name}\``;
   }
 
-  // Also track if checkbox is checked
   function isFieldSelected(row: FlattenedField): boolean {
-    const ref = getFieldRef(row);
-    return columns.includes(ref);
+    return selectedColumns.includes(getFieldRef(row));
   }
 
-  /* ---------------- TABLE COLUMNS DEFINITION ---------------- */
-  const baseColumns = React.useMemo<ColumnDef<FlattenedField>[]>(() => {
+  // Column definitions (all possible). We'll filter by visibleColumns below.
+  const allColumnDefs = React.useMemo<ColumnDef<FlattenedField>[]>(() => {
     return [
       {
         name: "Select Field",
         align: "center",
-        width: "60px",
+        width: 60,
         formatter: (row) => {
           const ref = getFieldRef(row);
           return (
@@ -145,11 +213,8 @@ export function Table5() {
               size="small"
               checked={isFieldSelected(row)}
               onChange={(e) => {
-                if (e.target.checked) {
-                  addColumnToQuery(ref);
-                } else {
-                  removeColumnFromQuery(ref);
-                }
+                if (e.target.checked) addColumnToQuery(ref);
+                else removeColumnFromQuery(ref);
               }}
             />
           );
@@ -158,7 +223,7 @@ export function Table5() {
       {
         name: "Dataset",
         formatter: (row) => row.table_schema,
-        width: "160px",
+        width: 160,
       },
       {
         name: "Table Name",
@@ -167,16 +232,21 @@ export function Table5() {
             {row.table_name}
           </Link>
         ),
-        width: "160px",
+        width: 160,
       },
       {
         name: "Field Name",
         formatter: (row) => row.column_name,
-        width: "160px",
+        width: 160,
+      },
+      {
+        name: "Data Type",
+        width: 120,
+        formatter: (row) => row.data_type,
       },
       {
         name: "Field Description",
-        width: "220px",
+        width: 220,
         formatter: (row) => {
           const fieldKey = row.table_name + "." + row.column_name;
           if (editingFieldKey === fieldKey) {
@@ -194,7 +264,7 @@ export function Table5() {
       },
       {
         name: "Primary Key",
-        width: "120px",
+        width: 120,
         formatter: (row) => {
           const fieldKey = row.table_name + "." + row.column_name;
           if (editingFieldKey === fieldKey) {
@@ -220,7 +290,7 @@ export function Table5() {
       },
       {
         name: "Foreign Key",
-        width: "120px",
+        width: 120,
         formatter: (row) => {
           const fieldKey = row.table_name + "." + row.column_name;
           if (editingFieldKey === fieldKey) {
@@ -245,19 +315,21 @@ export function Table5() {
         },
       },
       {
+        name: "Field Mode",
+        width: 120,
+        formatter: (row) => row.field_mode || "",
+      },
+      {
         name: "Actions",
-        hideName: true,
         align: "right",
-        width: "80px",
+        hideName: true,
+        width: 80,
         formatter: (row) => {
           const fieldKey = row.table_name + "." + row.column_name;
           if (editingFieldKey === fieldKey) {
             return (
               <Stack direction="row" spacing={1}>
-                <IconButton
-                  onClick={() => handleSaveDescription(fieldKey)}
-                  color="primary"
-                >
+                <IconButton onClick={() => handleSaveDescription(fieldKey)} color="primary">
                   <Check size={18} />
                 </IconButton>
                 <IconButton onClick={handleCancelEdit} color="inherit">
@@ -273,18 +345,69 @@ export function Table5() {
           );
         },
       },
+      {
+        name: "Access Instructions",
+        width: 80,
+        formatter: (row, rowIndex) => {
+          // Expand/collapse logic
+          const isExpanded = expandedRow === rowIndex;
+          return (
+            <Box>
+              <IconButton onClick={() => toggleExpandRow(rowIndex)}>
+                {isExpanded ? <CaretUp /> : <CaretDown />}
+              </IconButton>
+              <Collapse in={isExpanded} unmountOnExit>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderLeft: "2px solid #ccc",
+                    marginLeft: 2,
+                    marginTop: 1
+                  }}
+                >
+                  <Typography variant="caption" fontWeight="bold">
+                    FROM Clause
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ display: "block", fontFamily: "monospace", whiteSpace: "pre-wrap" }}
+                  >
+                    {row.access_instructions?.from_clause || "N/A"}
+                  </Typography>
+
+                  <Typography variant="caption" fontWeight="bold" sx={{ mt: 1 }}>
+                    SELECT Expr
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ display: "block", fontFamily: "monospace", whiteSpace: "pre-wrap" }}
+                  >
+                    {row.access_instructions?.select_expr || "N/A"}
+                  </Typography>
+                </Box>
+              </Collapse>
+            </Box>
+          );
+        }
+      }
     ];
   }, [
     editingFieldKey,
     tempDescription,
     tempPrimaryKey,
     tempForeignKey,
-    columns,
+    selectedColumns,
+    expandedRow,
     addColumnToQuery,
-    removeColumnFromQuery,
+    removeColumnFromQuery
   ]);
 
-  /* ---------------- FILTERING + PAGINATION ---------------- */
+  // Filter columns by what's visible
+  const displayedColumns = React.useMemo(() => {
+    return allColumnDefs.filter((col) => visibleColumns.includes(col.name));
+  }, [allColumnDefs, visibleColumns]);
+
+  // Filtering + pagination
   const uniqueTables = React.useMemo(
     () => Array.from(new Set(augmentedData.map((f) => f.table_name))),
     [augmentedData]
@@ -314,7 +437,7 @@ export function Table5() {
   const startIndex = currentPage * rowsPerPage;
   const paginatedRows = filteredRows.slice(startIndex, startIndex + rowsPerPage);
 
-  function handlePageChange(_e: any, newPage: number) {
+  function handlePageChange(_event: any, newPage: number) {
     setCurrentPage(newPage);
   }
   function handleRowsPerPageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -322,22 +445,56 @@ export function Table5() {
     setCurrentPage(0);
   }
 
-  // Example "Get Descriptions" from JSON
+  // "Get Descriptions" logic
   async function handleGetDescriptions() {
     try {
+      setDialogOpen(true);
+      setDescProgress(1);
+      await sleep(1000);
+
+      setDescProgress(2);
+      // Example: fetch from /my-schema.json
       const res = await fetch("/my-schema.json");
       if (!res.ok) {
         throw new Error(`Failed to load schema file. Status ${res.status}`);
       }
       const schema = await res.json();
+      setDescFoundCount(schema.length);
 
+      // Build matched
+      const matched: { dataset: string; tableName: string }[] = [];
+      augmentedData.forEach((row) => {
+        if (!row.description) {
+          const tbl = schema.find((t: any) => t.table_name === row.table_name);
+          if (tbl && tbl.columns) {
+            const col = tbl.columns.find((c: any) => c.column_name === row.column_name);
+            if (col && col.description) {
+              matched.push({ dataset: row.table_schema, tableName: row.table_name });
+            }
+          }
+        }
+      });
+      // Deduplicate
+      const uniqueMatched: { dataset: string; tableName: string }[] = [];
+      const seen = new Set<string>();
+      for (const m of matched) {
+        const key = m.dataset + ":" + m.tableName;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueMatched.push(m);
+        }
+      }
+      setMatchedTables(uniqueMatched);
+
+      await sleep(2000);
+
+      setDescProgress(3);
+      // Update data with new descriptions
       const updated = augmentedData.map((row) => {
         if (!row.description) {
           const tbl = schema.find((t: any) => t.table_name === row.table_name);
           if (tbl && tbl.columns) {
-            const col = tbl.columns.find(
-              (c: any) => c.column_name === row.column_name
-            );
+            const col = tbl.columns.find((c: any) => c.column_name === row.column_name);
             if (col && col.description) {
               return { ...row, description: col.description };
             }
@@ -345,10 +502,19 @@ export function Table5() {
         }
         return row;
       });
-
       setAugmentedData(updated);
+
+      await sleep(2000);
+
+      setDescProgress(4);
+      await sleep(1200);
+
+      setDescProgress(0);
+      setDialogOpen(false);
     } catch (err) {
       console.error("Error fetching schema descriptions:", err);
+      setDescProgress(0);
+      setDialogOpen(false);
     }
   }
 
@@ -375,15 +541,103 @@ export function Table5() {
     );
   }
 
+  // Multi-step "Get Descriptions" dialog content
+  function renderDialogContent() {
+    switch (descProgress) {
+      case 1:
+        return (
+          <>
+            <CircularProgress />
+            <Typography variant="h6" sx={{ mt: 2 }}>
+              Scanning schema...
+            </Typography>
+          </>
+        );
+      case 2:
+        return (
+          <>
+            <CircularProgress />
+            <Typography variant="h6" sx={{ mt: 2 }}>
+              Found {descFoundCount} dataset(s) in my-schema...
+            </Typography>
+            <Box sx={{ mt: 2, width: "100%", maxHeight: 200, overflowY: "auto" }}>
+              {matchedTables.length > 0 ? (
+                <List dense>
+                  {matchedTables.map((m, idx) => (
+                    <ListItem key={`${m.dataset}:${m.tableName}:${idx}`}>
+                      <ListItemText
+                        primary={m.tableName}
+                        secondary={`dataset: ${m.dataset}`}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  0 descriptions added.
+                </Typography>
+              )}
+            </Box>
+          </>
+        );
+      case 3:
+        return (
+          <>
+            <CircularProgress />
+            <Typography variant="h6" sx={{ mt: 2 }}>
+              Adding descriptions...
+            </Typography>
+          </>
+        );
+      case 4:
+        return (
+          <>
+            <Check size={48} color="green" />
+            <Typography variant="h6" sx={{ mt: 2 }}>
+              Process complete!
+            </Typography>
+            {matchedTables.length === 0 && (
+              <Typography sx={{ mt: 1 }} variant="body2" color="text.secondary">
+                0 descriptions added.
+              </Typography>
+            )}
+          </>
+        );
+      default:
+        return null; // or an empty fragment
+    }
+  }
+
+  // Final render
   return (
     <Box sx={{ bgcolor: "var(--mui-palette-background-level1)", p: 3 }}>
       <Card>
-        {/* Filters */}
+        {/* Step-by-step "Get Descriptions" dialog */}
+        <Dialog
+          open={dialogOpen}
+          BackdropProps={{ sx: { backdropFilter: "blur(5px)" } }}
+          PaperProps={{
+            sx: {
+              width: 400,
+              minHeight: 200,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              p: 3
+            }
+          }}
+        >
+          <DialogContent>{renderDialogContent()}</DialogContent>
+        </Dialog>
+
+        {/* Filters and column visibility */}
         <Stack
           direction="row"
           spacing={2}
           sx={{ alignItems: "center", flexWrap: "wrap", p: 3 }}
         >
+          {/* Search */}
           <OutlinedInput
             placeholder="Search fields"
             value={searchQuery}
@@ -396,6 +650,7 @@ export function Table5() {
             sx={{ maxWidth: "100%", width: "300px" }}
           />
 
+          {/* Table Filter */}
           <Select
             value={tableFilter}
             onChange={(e) => setTableFilter(e.target.value)}
@@ -410,6 +665,7 @@ export function Table5() {
             ))}
           </Select>
 
+          {/* Dataset Filter */}
           <Select
             value={datasetFilter}
             onChange={(e) => setDatasetFilter(e.target.value)}
@@ -424,6 +680,7 @@ export function Table5() {
             ))}
           </Select>
 
+          {/* Missing Description Switch */}
           <FormControlLabel
             control={
               <Switch
@@ -433,13 +690,34 @@ export function Table5() {
             }
             label="Missing Description"
           />
+
+          {/* Columns Visibility Button */}
+          <Button variant="outlined" startIcon={<ListIcon />} onClick={openMenu}>
+            Columns
+          </Button>
+          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={closeMenu}>
+            <FormGroup sx={{ p: 2 }}>
+              {ALL_COLUMNS.map((colName) => (
+                <MUICheckboxLabel
+                  key={colName}
+                  control={
+                    <Checkbox
+                      checked={visibleColumns.includes(colName)}
+                      onChange={() => toggleColumn(colName)}
+                    />
+                  }
+                  label={colName}
+                />
+              ))}
+            </FormGroup>
+          </Menu>
         </Stack>
 
         <Divider />
 
-        {/* DataTable */}
+        {/* DataTable with displayedColumns */}
         <Box sx={{ overflowX: "auto" }}>
-          <DataTable<FlattenedField> columns={baseColumns} rows={paginatedRows} />
+          <DataTable<FlattenedField> columns={displayedColumns} rows={paginatedRows} />
         </Box>
 
         <Divider />
@@ -457,7 +735,7 @@ export function Table5() {
 
         <Divider />
 
-        {/* Buttons row */}
+        {/* Bottom buttons */}
         <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ p: 2 }}>
           <Button variant="contained" onClick={handleGetDescriptions}>
             Get Descriptions
@@ -467,7 +745,7 @@ export function Table5() {
           </Button>
           <Button
             variant="contained"
-            disabled={columns.length === 0}
+            disabled={selectedColumns.length === 0}
             onClick={() => openDrawer()}
           >
             View Query
