@@ -7,6 +7,9 @@ interface ImportMetaEnv {
 	VITE_LOG_LEVEL?: string;
 	VITE_AUTH_STRATEGY?: string;
 
+	// Backend
+	VITE_API_URL?: string;
+
 	// Auth0
 	VITE_AUTH0_DOMAIN?: string;
 	VITE_AUTH0_CLIENT_ID?: string;

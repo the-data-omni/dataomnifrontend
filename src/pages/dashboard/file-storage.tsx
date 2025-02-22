@@ -86,7 +86,7 @@ const view: "grid" | "list" = (rawView === "list") ? "list" : "grid";
 
   const handleLoadFromAPI = React.useCallback(async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_APP_URL}/bigquery_info`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/bigquery_info`);
       if (!response.ok) {
         throw new Error(`HTTP error: ${response.status}`);
       }
