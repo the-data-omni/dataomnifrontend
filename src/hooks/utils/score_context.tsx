@@ -136,7 +136,8 @@ export function ScoreProvider({ children }: { children: React.ReactNode }) {
           paramsOverride?.weights_override ?? scoreParams.weights_override,
       };
 
-      const res = await fetch("http://127.0.0.1:5000/score_schema", {
+      // changed to dynamic import for Vite
+      const res = await fetch(`${import.meta.env.VITE_APP_URL}/score_schema`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
