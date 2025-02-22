@@ -1,5 +1,5 @@
 # Stage 1: Build Image
-FROM node:22-alpine as build
+FROM node:22-alpine AS build
 RUN apk add git
 WORKDIR /app
 COPY package*.json ./
