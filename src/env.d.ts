@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
 	// App
-	VITE_APP_URL?: string | "http://127.0.0.1:5000";
+	VITE_APP_URL?: string;
 	VITE_VERCEL_URL?: string;
 	VITE_LOG_LEVEL?: string;
 	VITE_AUTH_STRATEGY?: string;
