@@ -20,7 +20,7 @@ async function fetchSchemaFromLocal(filename: string): Promise<FlattenedField[]>
 }
 
 async function fetchFlattenedFieldsFromAPI(): Promise<FlattenedField[]> {
-  const response = await fetch('http://127.0.0.1:5000/bigquery_info');
+  const response = await fetch(`${import.meta.env.VITE_APP_URL}/bigquery_info`);
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }

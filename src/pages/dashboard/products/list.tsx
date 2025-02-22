@@ -51,7 +51,7 @@ export function Page(): React.JSX.Element {
   const { data: queriesData, isLoading, refetch } = useQuery({
     queryKey: ["queriesAndQuestions"],
     queryFn: async (): Promise<Query[]> => {
-      const res = await fetch("http://127.0.0.1:5000/queries_and_questions");
+      const res = await fetch(`${import.meta.env.VITE_APP_URL}/queries_and_questions`);
       if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
       const data: Array<{
         avg_execution_time: number | null;
