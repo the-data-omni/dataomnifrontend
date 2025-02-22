@@ -3,7 +3,6 @@ FROM node:22-alpine AS build
 RUN apk add git
 WORKDIR /app
 COPY package*.json ./
-ENV VITE_APP_URL=http://127.0.0.1:5000
 RUN npm install
 COPY . .
 RUN npm run build
