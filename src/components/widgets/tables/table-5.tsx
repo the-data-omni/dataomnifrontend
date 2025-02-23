@@ -115,7 +115,7 @@ export function Table5() {
 
   // Pagination
   const [currentPage, setCurrentPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
   // Multi-step "Get Descriptions" dialog states
   const [descProgress, setDescProgress] = React.useState(0); // 0=idle, 1=scan, 2=found, 3=adding, 4=done

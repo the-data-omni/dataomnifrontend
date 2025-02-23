@@ -11,6 +11,7 @@ import { appConfig } from "@/config/app";
 import { paths } from "@/paths";
 import { RouterLink } from "@/components/core/link";
 import { ProductCreateForm } from "@/components/dashboard/product/product-create-form";
+import { Table5 } from "@/components/widgets/tables/table-5";
 
 const metadata = { title: `Create | Products | Dashboard | ${appConfig.name}` } satisfies Metadata;
 
@@ -34,19 +35,19 @@ export function Page(): React.JSX.Element {
 							<Link
 								color="text.primary"
 								component={RouterLink}
-								href={paths.dashboard.products.list}
+								href={paths.dashboard.analytics}
 								sx={{ alignItems: "center", display: "inline-flex", gap: 1 }}
 								variant="subtitle2"
 							>
 								<ArrowLeftIcon fontSize="var(--icon-fontSize-md)" />
-								Products
+								Schema Scoring
 							</Link>
 						</div>
-						<div>
+						{/* <div>
 							<Typography variant="h4">Create product</Typography>
-						</div>
+						</div> */}
 					</Stack>
-					<ProductCreateForm />
+					<Table5 />
 				</Stack>
 			</Box>
 		</React.Fragment>

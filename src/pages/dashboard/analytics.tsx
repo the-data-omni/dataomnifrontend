@@ -98,9 +98,9 @@ export function Page(): React.JSX.Element {
             {/* Pass in the dynamic insights */}
             <Insight insights={insights} />
           </Grid>
-		  <Grid size={12}>
+		  {/* <Grid size={12}>
 							<Table5 />
-						</Grid>
+						</Grid> */}
 					</Grid>
 				</Stack>
 			</Box>

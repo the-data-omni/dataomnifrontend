@@ -1,156 +1,138 @@
 "use client";
 
-import type * as React from "react";
+import React, { useState } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
-import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
-import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
-import Link from "@mui/material/Link";
-import OutlinedInput from "@mui/material/OutlinedInput";
-import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import InputAdornment from "@mui/material/InputAdornment";
+import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import { MagnifyingGlass as MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
-import { PencilSimple as PencilSimpleIcon } from "@phosphor-icons/react/dist/ssr/PencilSimple";
 
-import { dayjs } from "@/lib/dayjs";
+import { MagnifyingGlass as MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+
 import type { ColumnDef } from "@/components/core/data-table";
 import { DataTable } from "@/components/core/data-table";
-import { Option } from "@/components/core/option";
 
-interface Invoice {
-	id: string;
-	customer: { name: string; email: string };
-	currency: string;
-	totalAmount: number;
-	status: "pending" | "paid" | "canceled";
-	issueDate: Date;
+// 1. Define the interface for columns within the table schema
+interface SchemaColumn {
+  column_name: string;
+  description: string;
 }
 
-const invoices = [
-	{
-		id: "INV-004",
-		customer: { name: "Iulia Albu", email: "iulia.albu@domain.com" },
-		currency: "USD",
-		totalAmount: 55.5,
-		status: "paid",
-		issueDate: dayjs().subtract(1, "hour").toDate(),
-	},
-	{
-		id: "INV-003",
-		customer: { name: "Fran Perez", email: "fran.perez@domain.com" },
-		currency: "USD",
-		totalAmount: 19.76,
-		status: "pending",
-		issueDate: dayjs().subtract(2, "hour").subtract(2, "day").toDate(),
-	},
-	{
-		id: "INV-002",
-		customer: { name: "Jie Yan", email: "jie.yan@domain.com" },
-		currency: "USD",
-		totalAmount: 781.5,
-		status: "canceled",
-		issueDate: dayjs().subtract(4, "hour").subtract(6, "day").toDate(),
-	},
-	{
-		id: "INV-001",
-		customer: { name: "Nasimiyu Danai", email: "nasimiyu.danai@domain.com" },
-		currency: "USD",
-		totalAmount: 96.64,
-		status: "paid",
-		issueDate: dayjs().subtract(2, "hour").subtract(15, "day").toDate(),
-	},
-] satisfies Invoice[];
+// 2. Define the interface for each table in the scraped schema
+interface TableSchema {
+  table_name: string;
+  table_link: string;
+  description: string;
+  relation: string;
+  table_description: string;
+  columns: SchemaColumn[];
+}
 
-const columns = [
-	{
-		formatter: (row): React.JSX.Element => (
-			<div>
-				<Link color="text.primary" sx={{ whiteSpace: "nowrap" }} underline="none" variant="subtitle2">
-					{row.customer.name}
-				</Link>
-				<Typography color="text.secondary" variant="body2">
-					{row.customer.email}
-				</Typography>
-			</div>
-		),
-		name: "Customer",
-		width: "250px",
-	},
-	{
-		formatter: (row): React.JSX.Element => {
-			const mapping = {
-				canceled: { label: "Canceled", color: "error" },
-				paid: { label: "Paid", color: "success" },
-				pending: { label: "Pending", color: "warning" },
-			} as const;
-			const { label, color } = mapping[row.status] ?? { label: "Unknown", color: "secondary" };
-
-			return <Chip color={color} label={label} size="small" variant="soft" />;
-		},
-		name: "Status",
-		width: "150px",
-	},
-	{ field: "id", name: "ID", width: "150px" },
-	{
-		formatter: (row): string => {
-			return new Intl.NumberFormat("en-US", { style: "currency", currency: row.currency }).format(row.totalAmount);
-		},
-		name: "Total Amount",
-		width: "150px",
-	},
-	{
-		formatter: (row): string => {
-			return dayjs(row.issueDate).format("MMM D, YYYY");
-		},
-		name: "Issue Date",
-		width: "150px",
-	},
-	{
-		formatter: (): React.JSX.Element => (
-			<IconButton>
-				<PencilSimpleIcon />
-			</IconButton>
-		),
-		name: "Actions",
-		hideName: true,
-		width: "100px",
-		align: "right",
-	},
-] satisfies ColumnDef<Invoice>[];
+// 3. Create DataTable columns describing how TableSchema should appear
+const columns: ColumnDef<TableSchema>[] = [
+  { field: "table_name", name: "Table Name", width: "200px" },
+  {
+    // Render a clickable link for table_link
+    name: "Table Link",
+    width: "300px",
+    formatter: (row) => (
+      <a href={row.table_link} target="_blank" rel="noreferrer">
+        {row.table_link}
+      </a>
+    ),
+  },
+  { field: "description", name: "Description", width: "300px" },
+  { field: "relation", name: "Relation", width: "280px" },
+  { field: "table_description", name: "Table Description", width: "300px" },
+  {
+    // Example: Show column names & descriptions stacked inside a cell
+    name: "Columns",
+    width: "300px",
+    formatter: (row) => (
+      <div>
+        {row.columns.map((col, index) => (
+          <div key={index} style={{ marginBottom: "0.5rem" }}>
+            <strong>{col.column_name}</strong>: {col.description}
+          </div>
+        ))}
+      </div>
+    ),
+  },
+];
 
 export function Table6(): React.JSX.Element {
-	return (
-		<Box sx={{ bgcolor: "var(--mui-palette-background-level1)", p: 3 }}>
-			<Card>
-				<Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap", p: 3 }}>
-					<OutlinedInput
-						placeholder="Search invoices"
-						startAdornment={
-							<InputAdornment position="start">
-								<MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
-							</InputAdornment>
-						}
-						sx={{ flex: "1 1 auto" }}
-					/>
-					<Select defaultValue="desc" name="sort" sx={{ maxWidth: "100%", width: "120px" }}>
-						<Option value="desc">Newest</Option>
-						<Option value="asc">Oldest</Option>
-					</Select>
-					<Select defaultValue="all" name="sort" sx={{ maxWidth: "100%", width: "120px" }}>
-						<Option value="all">All</Option>
-						<Option value="paid">Paid</Option>
-						<Option value="pending">Pending</Option>
-						<Option value="canceled">Canceled</Option>
-					</Select>
-				</Stack>
-				<Divider />
-				<Box sx={{ overflowX: "auto" }}>
-					<DataTable<Invoice> columns={columns} rows={invoices} selectable />
-				</Box>
-			</Card>
-		</Box>
-	);
+  // 4. State for the user-entered URL
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  // 5. State for the scraped schema data
+  const [tables, setTables] = useState<TableSchema[]>([]);
+  // 6. Loading and error states
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // 7. Function to handle the scrape call
+  const handleScrape = async () => {
+    if (!scrapeUrl) return;
+    setLoading(true);
+    setError("");
+    setTables([]);
+
+    try {
+      // POST the URL to your backend to scrape
+      const response = await fetch("/api/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: scrapeUrl }),
+      });
+
+      if (!response.ok) {
+        const msg = await response.json();
+        setError(msg.error || "An error occurred while scraping.");
+      } else {
+        const json = await response.json();
+        setTables(json.data || []);
+      }
+    } catch (err: any) {
+      setError(err.message || "Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Box sx={{ bgcolor: "var(--mui-palette-background-level1)", p: 3 }}>
+      <Card>
+        <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap", p: 3 }}>
+          <OutlinedInput
+            value={scrapeUrl}
+            onChange={(e) => setScrapeUrl(e.target.value)}
+            placeholder="Enter URL to scrape"
+            startAdornment={
+              <InputAdornment position="start">
+                <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
+              </InputAdornment>
+            }
+            sx={{ flex: "1 1 auto" }}
+          />
+          <Button variant="contained" onClick={handleScrape} disabled={loading}>
+            {loading ? "Scraping..." : "Scrape"}
+          </Button>
+        </Stack>
+        <Divider />
+
+        {error && (
+          <Typography color="error" sx={{ p: 2 }}>
+            {error}
+          </Typography>
+        )}
+
+        <Box sx={{ overflowX: "auto" }}>
+          {/* 8. Render the DataTable with the scraped data */}
+          <DataTable<TableSchema> columns={columns} rows={tables} selectable />
+        </Box>
+      </Card>
+    </Box>
+  );
 }

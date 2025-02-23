@@ -139,7 +139,7 @@ export function ScoreProvider({ children }: { children: React.ReactNode }) {
 
       const apiUrl = import.meta.env.VITE_API_URL;
 
-      const res = await fetch("${apiUrl}/score_schema", {
+      const res = await fetch("https://schema-scoring-api-242009193450.us-central1.run.app/score_schema", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
