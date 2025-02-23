@@ -27,7 +27,7 @@ function parseBqErrorMessage(rawMsg: string): string {
  * returning a JSON: { sql: "..."}
  */
 async function askOpenAiForSql(userQuestion: string, existingSql: string) {
-  const response = await fetch("http://127.0.0.1:5000/generate_sql", {
+  const response = await fetch("http://127.0.0.1:5080/generate_sql", {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -47,7 +47,7 @@ async function askOpenAiForSql(userQuestion: string, existingSql: string) {
  * { formatted_bytes_processed, message } or throws an error message.
  */
 async function dryRunQuery(sql: string) {
-  const resp = await fetch("http://127.0.0.1:5000/dry_run", {
+  const resp = await fetch("http://127.0.0.1:5080/dry_run", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query: sql }),

@@ -92,6 +92,7 @@ export function Table5() {
     addColumnToQuery,
     removeColumnFromQuery,
     openDrawer,
+    setTableName
   } = useQueryDrawer();
 
   // Local augmented data
@@ -195,6 +196,7 @@ export function Table5() {
     return `\`${row.table_schema}\`.\`${row.table_name}\`.\`${row.column_name}\``;
   }
 
+  // (Not used in "Select Field" column anymore, but let's leave it for any future usage.)
   function isFieldSelected(row: FlattenedField): boolean {
     return selectedColumns.includes(getFieldRef(row));
   }
@@ -206,15 +208,25 @@ export function Table5() {
         name: "Select Field",
         align: "center",
         width: 60,
+        /** 
+         * UPDATED: we now always use access_instructions for FROM + SELECT,
+         * no fallback to getFieldRef().
+         */
         formatter: (row) => {
-          const ref = getFieldRef(row);
+          const fromClause = row.access_instructions?.from_clause || "";
+          const selectExpr = row.access_instructions?.select_expr || "";
+
           return (
             <Checkbox
               size="small"
-              checked={isFieldSelected(row)}
+              checked={selectedColumns.includes(selectExpr)}
               onChange={(e) => {
-                if (e.target.checked) addColumnToQuery(ref);
-                else removeColumnFromQuery(ref);
+                if (e.target.checked) {
+                  setTableName(fromClause);
+                  addColumnToQuery(selectExpr);
+                } else {
+                  removeColumnFromQuery(selectExpr);
+                }
               }}
             />
           );
@@ -399,7 +411,8 @@ export function Table5() {
     selectedColumns,
     expandedRow,
     addColumnToQuery,
-    removeColumnFromQuery
+    removeColumnFromQuery,
+    setTableName
   ]);
 
   // Filter columns by what's visible
