@@ -13,7 +13,7 @@ import type { Metadata } from "@/types/metadata";
 import { appConfig } from "@/config/app";
 import { paths } from "@/paths";
 import { RouterLink } from "@/components/core/link";
-import { QueryEditForm } from "@/components/dashboard/product/product-edit-form"; // <-- You might put your new form here
+import { Table6 } from "@/components/widgets/tables/table-6";
 
 const metadata = { title: `Details | Queries | Dashboard | ${appConfig.name}` } satisfies Metadata;
 
@@ -47,18 +47,12 @@ export function Page(): React.JSX.Element {
               </Link>
             </div>
             <div>
-              <Typography variant="h4">Edit Query</Typography>
+              <Typography variant="h4">Extract Metadata From Online Documentation</Typography>
             </div>
           </Stack>
 
           {/* Pass a "query" object to QueryEditForm with the fields question, statementType, sql */}
-          <QueryEditForm
-            query={{
-              id: "Q-001",
-              question: "Which items sold the most last month?",
-              statementType: "SELECT",
-              sql: "SELECT product_id, SUM(quantity) AS total_sold FROM orders WHERE created_at >= CURRENT_DATE - INTERVAL '30 day' GROUP BY product_id ORDER BY total_sold DESC;",
-            }}
+          <Table6
           />
         </Stack>
       </Box>

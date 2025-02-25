@@ -70,7 +70,7 @@ export default defineConfig({
     proxy: {
       // Any request to "/api" will be forwarded to "http://localhost:5000"
       "/api/generate_sql": {
-        target: "http://localhost:5000",
+        target: "https://schema-scoring-api-242009193450.us-central1.run.app",
         changeOrigin: true,
         // If you want to rewrite paths (optional):
         //   rewrite: (path) => path.replace(/^\/api/, ''),

@@ -16,7 +16,8 @@ import { StorageProvider } from '@/components/dashboard/file-storage/storage-con
 import { StorageView } from '@/components/dashboard/file-storage/storage-view';
 import type { Item } from '@/components/dashboard/file-storage/types';
 import { UplaodButton } from '@/components/dashboard/file-storage/upload-button';
-import { paths } from '@/paths'; // If you need it for navigate, etc.
+
+import { useFlattenedFields } from '@/hooks/utils/useFlattenedFields';
 
 function createItemFromJsonData(filename: string, data: unknown): Item {
   const jsonStr = JSON.stringify(data);
@@ -40,19 +41,14 @@ function createItemFromJsonData(filename: string, data: unknown): Item {
 }
 
 export function Page(): React.JSX.Element {
-  // 1) Use the useSearchParams hook
   const [searchParams] = useSearchParams();
-  // 2) Extract query params from the URL
   const query = searchParams.get('query') || '';
   const sortDir = (searchParams.get('sortDir') === 'asc') ? 'asc' : 'desc'; 
   const rawView = searchParams.get('view');
-
-// if it's "grid" or "list", use it. Otherwise fall back to "grid"
-const view: "grid" | "list" = (rawView === "list") ? "list" : "grid";
-
-  // We'll reuse your "filters" object (same as in your old code)
+  const view: 'grid' | 'list' = (rawView === 'list') ? 'list' : 'grid';
   const filters: Filters = { query };
 
+  // Manage Items in localStorage
   const [items, setItems] = React.useState<Item[]>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('uploadedItems');
@@ -62,10 +58,10 @@ const view: "grid" | "list" = (rawView === "list") ? "list" : "grid";
           return parsed.map(item => ({
             ...item,
             createdAt: new Date(item.createdAt),
-            updatedAt: new Date(item.updatedAt)
+            updatedAt: new Date(item.updatedAt),
           }));
         } catch (e) {
-          console.error("Failed to parse stored items:", e);
+          console.error('Failed to parse stored items:', e);
         }
       }
     }
@@ -84,39 +80,121 @@ const view: "grid" | "list" = (rawView === "list") ? "list" : "grid";
     saveItemsToLocalStorage(newItems);
   }, [items, saveItemsToLocalStorage]);
 
-  const handleLoadFromAPI = React.useCallback(async () => {
+  // --- Service Account Upload Logic ---
+  const [serviceAccountUploaded, setServiceAccountUploaded] = React.useState(false);
+
+  const checkServiceAccountStatus = React.useCallback(async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/bigquery_info');
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
+      const res = await fetch(
+        'https://schema-scoring-api-242009193450.us-central1.run.app/is_service_account_loaded',
+        {
+          method: 'GET',
+          credentials: 'include',
+        }
+      );
+      if (!res.ok) {
+        throw new Error(`Status check failed: ${res.status}`);
       }
-      const data = await response.json();
-      const filename = prompt('Enter a filename for this data (e.g. "api_schema.json")');
-      if (!filename) return;
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(filename, JSON.stringify(data));
-      }
-
-      const newItem = createItemFromJsonData(filename, data);
-      const newItems = [...items, newItem];
-      setItems(newItems);
-      saveItemsToLocalStorage(newItems);
-    } catch (e) {
-      console.error("Error loading from API:", e);
+      const data = await res.json();
+      setServiceAccountUploaded(data.uploaded === true);
+    } catch (error) {
+      console.error('Error checking service account status:', error);
     }
-  }, [items, saveItemsToLocalStorage]);
+  }, []);
 
+  React.useEffect(() => {
+    checkServiceAccountStatus();
+  }, [checkServiceAccountStatus]);
+
+  const hiddenFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleClickUploadServiceAccount = React.useCallback(() => {
+    if (hiddenFileInputRef.current) {
+      hiddenFileInputRef.current.click();
+    }
+  }, []);
+
+  const handleServiceAccountFileChange = React.useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        const fileText = await file.text();
+        const jsonData = JSON.parse(fileText);
+
+        const response = await fetch(
+          'https://schema-scoring-api-242009193450.us-central1.run.app/upload_service_account',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(jsonData),
+            credentials: 'include',
+          }
+        );
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || 'Failed to upload service account JSON');
+        }
+        const result = await response.json();
+        console.log('Service account response:', result);
+
+        alert('Service account uploaded successfully!');
+        checkServiceAccountStatus();
+      } catch (error) {
+        console.error('Error uploading service account file:', error);
+        alert('Error uploading service account. See console for details.');
+      }
+    },
+    [checkServiceAccountStatus]
+  );
+
+  // --- Use Flattened Fields from "api" on user click ---
+  const [shouldFetchApi, setShouldFetchApi] = React.useState(false);
+
+  // This calls bigquery_info behind the scenes
+  const { data: fields, isLoading, isError } = useFlattenedFields(
+    shouldFetchApi ? 'api' : undefined
+  );
+
+  // Once 'fields' come back, we prompt for filename and store to local
+  React.useEffect(() => {
+    if (fields && shouldFetchApi) {
+      const filename = prompt('Enter a filename for this data (e.g. "api_schema.json")');
+      if (filename) {
+        // Store in localStorage as { schema: fields } or just the fields?
+        localStorage.setItem(filename, JSON.stringify({ schema: fields }));
+
+        // Also create an "Item" so it shows up in our File Storage
+        const newItem = createItemFromJsonData(filename, { schema: fields });
+        const newItems = [...items, newItem];
+        setItems(newItems);
+        saveItemsToLocalStorage(newItems);
+      }
+      // Reset so we don't continually prompt if fields changes
+      setShouldFetchApi(false);
+    }
+  }, [fields, shouldFetchApi, items, saveItemsToLocalStorage]);
+
+  const handleLoadFromAPI = React.useCallback(() => {
+    if (!serviceAccountUploaded) {
+      alert('Please upload a service account first.');
+      return;
+    }
+    setShouldFetchApi(true);
+  }, [serviceAccountUploaded]);
+
+  // Sort & Filter items
   const sortedItems = applySort(items, sortDir);
   const filteredItems = applyFilters(sortedItems, filters);
 
-  // Data Models section
-  const [dataModels, setDataModels] = React.useState<{key: string; modelName: string}[]>(() => {
+  // Data Models
+  const [dataModels, setDataModels] = React.useState<{ key: string; modelName: string }[]>(() => {
     if (typeof window !== 'undefined') {
       const keys = Object.keys(localStorage).filter(k => k.startsWith('datamodel_'));
       return keys.map(key => ({
         key,
-        modelName: key.replace('datamodel_', '')
+        modelName: key.replace('datamodel_', ''),
       }));
     }
     return [];
@@ -127,10 +205,10 @@ const view: "grid" | "list" = (rawView === "list") ? "list" : "grid";
       const keys = Object.keys(localStorage).filter(k => k.startsWith('datamodel_'));
       setDataModels(keys.map(key => ({
         key,
-        modelName: key.replace('datamodel_', '')
+        modelName: key.replace('datamodel_', ''),
       })));
     }
-  }, [items]); 
+  }, [items]);
 
   function downloadModel(key: string) {
     const data = localStorage.getItem(key);
@@ -153,32 +231,33 @@ const view: "grid" | "list" = (rawView === "list") ? "list" : "grid";
   }
 
   return (
-    <Box
-      sx={{
-        maxWidth: 'var(--Content-maxWidth)',
-        m: 'var(--Content-margin)',
-        p: 'var(--Content-padding)',
-        width: 'var(--Content-width)',
-      }}
-    >
+    <Box sx={{ maxWidth: 'var(--Content-maxWidth)', m: 'var(--Content-margin)', p: 'var(--Content-padding)', width: 'var(--Content-width)' }}>
       <Stack spacing={4}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ alignItems: 'flex-start' }}>
           <Box sx={{ flex: '1 1 auto' }}>
             <Typography variant="h4">File storage</Typography>
           </Box>
           <Stack direction="row" spacing={2}>
-            <Button variant="outlined" onClick={handleLoadFromAPI}>
-              Load from API
+            <Button variant="outlined" onClick={handleClickUploadServiceAccount}>
+              Upload Service Account
+            </Button>
+            <input
+              type="file"
+              accept=".json"
+              ref={hiddenFileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleServiceAccountFileChange}
+            />
+            {/* Load from API button calls setShouldFetchApi(true) */}
+            <Button variant="outlined" onClick={handleLoadFromAPI} disabled={!serviceAccountUploaded || isLoading}>
+              {isLoading ? 'Loading...' : 'Load from API'}
             </Button>
             <UplaodButton onSchemaUpload={handleSchemaUpload} />
           </Stack>
         </Stack>
+
         <Grid container spacing={4}>
-          <Grid
-            item
-            md={12}
-            xs={12}
-          >
+          <Grid item md={12} xs={12}>
             <Stack spacing={4}>
               <ItemsFilters filters={filters} sortDir={sortDir} view={view} />
               <StorageProvider items={filteredItems}>
@@ -187,15 +266,6 @@ const view: "grid" | "list" = (rawView === "list") ? "list" : "grid";
               <ItemsPagination count={filteredItems.length} page={0} />
             </Stack>
           </Grid>
-          {/* Optionally show stats or other info in another column
-          <Grid
-            item
-            md={4}
-            xs={12}
-          >
-            <Stats />
-          </Grid> 
-          */}
         </Grid>
 
         {/* Data Models Section */}
@@ -208,14 +278,22 @@ const view: "grid" | "list" = (rawView === "list") ? "list" : "grid";
               {dataModels.map(dm => (
                 <Box key={dm.key} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Typography variant="body1">{dm.modelName}</Typography>
-                  <Button variant="outlined" onClick={() => downloadModel(dm.key)}>Download</Button>
-                  <Button variant="outlined" color="error" onClick={() => deleteModel(dm.key)}>Delete</Button>
+                  <Button variant="outlined" onClick={() => downloadModel(dm.key)}>
+                    Download
+                  </Button>
+                  <Button variant="outlined" color="error" onClick={() => deleteModel(dm.key)}>
+                    Delete
+                  </Button>
                 </Box>
               ))}
             </Stack>
           )}
         </Box>
       </Stack>
+
+      {/* If you want to display loading/error state for the "Load from API" action */}
+      {isLoading && <p>Loading BigQuery data…</p>}
+      {isError && <p>Error loading BigQuery data.</p>}
     </Box>
   );
 }
@@ -230,7 +308,7 @@ function applySort(row: Item[], sortDir: 'asc' | 'desc' | undefined): Item[] {
 }
 
 function applyFilters(row: Item[], { query }: Filters): Item[] {
-  return row.filter((item) => {
+  return row.filter(item => {
     if (query && !item.name?.toLowerCase().includes(query.toLowerCase())) {
       return false;
     }

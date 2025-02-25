@@ -55,23 +55,23 @@ export const dashboardConfig = {
 					icon: "shopping-bag-open",
 					items: [
 						{ key: "products:create", title: "Catalog", href: paths.dashboard.products.create },
-						{ key: "blank", title: "Data Model", href: paths.dashboard.blank},
+						// { key: "blank", title: "Data Model", href: paths.dashboard.blank},
 						{ key: "products", title: "Historical Queries", href: paths.dashboard.products.list },
 						
 						
-						// { key: "products:details", title: "Product details", href: paths.dashboard.products.details("1") },
+						{ key: "products:details", title: "Scrape Metadata", href: paths.dashboard.products.details("1") },
 					],
 				},
-				{
-					key: "orders",
-					title: "Orders",
-					icon: "shopping-cart-simple",
-					items: [
-						{ key: "orders", title: "List orders", href: paths.dashboard.orders.list },
-						{ key: "orders:create", title: "Create order", href: paths.dashboard.orders.create },
-						{ key: "orders:details", title: "Order details", href: paths.dashboard.orders.details("1") },
-					],
-				 },
+				// {
+				// 	key: "orders",
+				// 	title: "Orders",
+				// 	icon: "shopping-cart-simple",
+				// 	items: [
+				// 		{ key: "orders", title: "List orders", href: paths.dashboard.orders.list },
+				// 		{ key: "orders:create", title: "Create order", href: paths.dashboard.orders.create },
+				// 		{ key: "orders:details", title: "Order details", href: paths.dashboard.orders.details("1") },
+				// 	],
+				//  },
 				// {
 				// 	key: "invoices",
 				// 	title: "Invoices",

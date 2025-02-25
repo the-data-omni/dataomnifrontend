@@ -75,7 +75,6 @@ const ALL_COLUMNS = [
 ];
 
 const INITIAL_VISIBLE_COLUMNS = [
-  "Select Field",
   "Dataset",
   "Table Name",
   "Field Name",

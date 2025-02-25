@@ -113,7 +113,7 @@ export function Page(): React.JSX.Element {
         return savedQueries;
       }
       if (source === "api") {
-        const res = await fetch("http://127.0.0.1:5000/queries_and_questions", {
+        const res = await fetch("https://schema-scoring-api-242009193450.us-central1.run.app/queries_and_questions", {
           method: "GET",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
