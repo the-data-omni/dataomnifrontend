@@ -170,7 +170,7 @@ export function Table6() {
     try {
       // 1) Get screenshot
       //   route: POST /scrape_screenshot
-      const ssResp = await fetch("https://schema-scoring-api-242009193450.us-central1.run.app/scrape_screenshot", {
+      const ssResp = await fetch("http://127.0.0.1:8080/scrape_screenshot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: docUrl }),
@@ -187,7 +187,7 @@ export function Table6() {
 
       // 3) Get data
       //   route: POST /scrape_data
-      const dataResp = await fetch("https://schema-scoring-api-242009193450.us-central1.run.app/scrape", {
+      const dataResp = await fetch("http://127.0.0.1:8080/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: docUrl }),

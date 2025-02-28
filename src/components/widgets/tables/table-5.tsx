@@ -51,15 +51,16 @@ import type { ColumnDef } from "@/components/core/data-table";
 
 import { useQueryDrawer } from "@/components/dashboard/chat/context/query-drawer-context";
 
-/** Small helper to simulate delay, so user sees each step in your multi-step "Get Descriptions" animation. */
+// isomorphic-git + lightning-fs
+import * as git from "isomorphic-git";
+import LightningFS from "@isomorphic-git/lightning-fs";
+import http from "isomorphic-git/http/web";
+
+// Utility to simulate delay in the multi-step "Get Descriptions" flow
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * All possible columns we might show. We’ll reference these names in
- * the column definitions and also in the column visibility toggles.
- */
 const ALL_COLUMNS = [
   "Select Field",
   "Dataset",
@@ -82,10 +83,10 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export function Table5() {
+  // 1) Flattened fields + query drawer
   const { selectedSchemaName } = React.useContext(SchemaContext);
   const { data = [], isLoading, error } = useFlattenedFields(selectedSchemaName);
 
-  // From Query Drawer context
   const {
     columns: selectedColumns,
     addColumnToQuery,
@@ -94,9 +95,8 @@ export function Table5() {
     setTableName
   } = useQueryDrawer();
 
-  // Local augmented data
+  // Local data for editing and display – updated from original data or a committed file
   const [augmentedData, setAugmentedData] = React.useState<FlattenedField[]>([]);
-
   React.useEffect(() => {
     setAugmentedData(data);
   }, [data]);
@@ -117,39 +117,275 @@ export function Table5() {
   const [currentPage, setCurrentPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
-  // Multi-step "Get Descriptions" dialog states
+  // "Get Descriptions" dialog states
   const [descProgress, setDescProgress] = React.useState(0); // 0=idle, 1=scan, 2=found, 3=adding, 4=done
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [descFoundCount, setDescFoundCount] = React.useState(0);
-  const [matchedTables, setMatchedTables] = React.useState<{ dataset: string; tableName: string }[]>(
-    []
-  );
+  const [matchedTables, setMatchedTables] = React.useState<{ dataset: string; tableName: string }[]>([]);
 
-  // Column visibility states
+  // Column visibility
   const [visibleColumns, setVisibleColumns] = React.useState<string[]>(INITIAL_VISIBLE_COLUMNS);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-
   function openMenu(event: React.MouseEvent<HTMLButtonElement>) {
     setAnchorEl(event.currentTarget);
   }
   function closeMenu() {
     setAnchorEl(null);
   }
-
   function toggleColumn(colName: string) {
     setVisibleColumns((prev) =>
       prev.includes(colName) ? prev.filter((c) => c !== colName) : [...prev, colName]
     );
   }
 
-  // For row expansion of "Access Instructions"
+  // "Access Instructions" row expansion
   const [expandedRow, setExpandedRow] = React.useState<number | null>(null);
-
   function toggleExpandRow(rowIndex: number) {
     setExpandedRow((prev) => (prev === rowIndex ? null : rowIndex));
   }
 
-  // Editing logic for descriptions, PK, FK
+  // 2) Ephemeral Git Setup
+  const [fsBase] = React.useState(() => new LightningFS("table5-fs"));
+  const pfs = fsBase.promises;
+
+  // We'll track two branches: "main" and "feature/desc-updates"
+  // Default to "feature/desc-updates"
+  const [currentBranch, setCurrentBranch] = React.useState("feature/desc-updates");
+
+  // We'll track if "main" has new commits => can update BQ
+  const [mainHasNewCommits, setMainHasNewCommits] = React.useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        await pfs.stat("/repo/.git");
+        console.log("Ephemeral repo already exists");
+      } catch {
+        console.log("No ephemeral .git found; init now...");
+        await pfs.mkdir("/repo").catch(() => {});
+        await git.init({ fs: fsBase, dir: "/repo", defaultBranch: "main" });
+        await git.setConfig({
+          fs: fsBase,
+          dir: "/repo",
+          path: "user.name",
+          value: "BrowserUser"
+        });
+        await git.setConfig({
+          fs: fsBase,
+          dir: "/repo",
+          path: "user.email",
+          value: "browser@example.com"
+        });
+      }
+
+      try {
+        const existingBranches = await git.listBranches({ fs: fsBase, dir: "/repo" });
+        console.log("Local branches at init:", existingBranches);
+        if (!existingBranches.includes("feature/desc-updates")) {
+          await git.branch({
+            fs: fsBase,
+            dir: "/repo",
+            ref: "feature/desc-updates"
+          });
+          console.log('Created "feature/desc-updates" branch');
+        }
+        await git.checkout({
+          fs: fsBase,
+          dir: "/repo",
+          ref: currentBranch
+        });
+        console.log(`Checked out branch "${currentBranch}"`);
+      } catch (err) {
+        console.error("Error creating/checking out feature branch:", err);
+      }
+    })();
+  }, [fsBase, pfs, currentBranch]);
+
+  // Load committed data from the file on the current branch (or fall back to original data)
+  React.useEffect(() => {
+    (async () => {
+      const fileName = "table5_descriptions.json";
+      try {
+        let content = await pfs.readFile(`/repo/${fileName}`, "utf8");
+        if (content instanceof Uint8Array) {
+          content = new TextDecoder("utf8").decode(content);
+        }
+        const parsedData = JSON.parse(content);
+        setAugmentedData(parsedData);
+        console.log(`Loaded committed data from branch ${currentBranch}`);
+      } catch (err) {
+        setAugmentedData(data);
+        console.log(`No committed data for branch ${currentBranch}. Using original data.`);
+      }
+    })();
+  }, [currentBranch, data, pfs]);
+
+  /** Commits changes (augmentedData) to the current branch. */
+  async function commitToCurrentBranch() {
+    try {
+      const fileName = "table5_descriptions.json";
+      const content = JSON.stringify(augmentedData, null, 2);
+      await pfs.writeFile(`/repo/${fileName}`, content, "utf8");
+      await git.add({ fs: fsBase, dir: "/repo", filepath: fileName });
+      const sha = await git.commit({
+        fs: fsBase,
+        dir: "/repo",
+        message: "Work in progress on field desc",
+        author: { name: "BrowserUser", email: "browser@example.com" }
+      });
+      console.log(`Committed to ${currentBranch}, SHA=${sha}`);
+      alert(`Committed changes to branch '${currentBranch}'! (SHA: ${sha})`);
+      try {
+        let fileContent = await pfs.readFile(`/repo/${fileName}`, "utf8");
+        if (fileContent instanceof Uint8Array) {
+          fileContent = new TextDecoder("utf8").decode(fileContent);
+        }
+        const parsedData = JSON.parse(fileContent);
+        setAugmentedData(parsedData);
+      } catch (err) {
+        console.error("Error reloading committed data:", err);
+      }
+    } catch (err) {
+      console.error("commitToCurrentBranch error:", err);
+      alert(String(err));
+    }
+  }
+
+  /** Merge "feature/desc-updates" -> "main" and flag if new commits exist. */
+  async function mergeFeatureIntoMain() {
+    try {
+      await git.checkout({ fs: fsBase, dir: "/repo", ref: "main" });
+      setCurrentBranch("main");
+      const mergeResult = await git.merge({
+        fs: fsBase,
+        dir: "/repo",
+        ours: "main",
+        theirs: "feature/desc-updates"
+      });
+      console.log("mergeResult:", mergeResult);
+      const { alreadyMerged, fastForward, mergeCommit, oid } = mergeResult || {};
+      if (alreadyMerged) {
+        alert("No changes. 'feature/desc-updates' was already merged into main!");
+      } else if (fastForward) {
+        alert(`Fast-forwarded feature/desc-updates into main! (OID: ${oid})`);
+        setMainHasNewCommits(true);
+      } else if (mergeCommit) {
+        alert(`Merged feature/desc-updates into main with a merge commit! OID: ${oid}`);
+        setMainHasNewCommits(true);
+      } else {
+        alert("Merge result unclear; no fast-forward, no new commit, not already merged?");
+      }
+    } catch (err) {
+      console.error("mergeFeatureIntoMain error:", err);
+      alert(String(err));
+    }
+  }
+
+  /** "Update BigQuery" only if mainHasNewCommits is true.
+   *  Button text changes to "Updating" while in progress.
+   */
+  const [updatingBQ, setUpdatingBQ] = React.useState(false);
+  async function handleUpdateBigQuery() {
+    if (!mainHasNewCommits) {
+      return alert("No new commits in main. Please merge your feature changes into main first.");
+    }
+    setUpdatingBQ(true);
+    const payload = {
+      schema: augmentedData.map((item) => ({
+        table_catalog: item.table_catalog,
+        table_schema: item.table_schema,
+        table_name: item.table_name,
+        column_name: item.column_name,
+        field_path: item.field_path || item.column_name,
+        description: item.description || ""
+      }))
+    };
+    try {
+      const res = await fetch("http://127.0.0.1:8080/update_descriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to update BQ, status: ${res.status}`);
+      }
+      const json = await res.json();
+      console.log("BQ updated successfully:", json);
+      alert("Updated BigQuery from main branch changes!");
+      setMainHasNewCommits(false);
+    } catch (err) {
+      console.error("Error updating BQ:", err);
+      alert(String(err));
+    } finally {
+      setUpdatingBQ(false);
+    }
+  }
+
+  /**
+   * Instead of a toggle group, use a single dropdown to select the branch.
+   */
+  async function handleBranchChange(newBranch: string) {
+    try {
+      await git.checkout({ fs: fsBase, dir: "/repo", ref: newBranch });
+      setCurrentBranch(newBranch);
+      alert(`Switched to branch: ${newBranch}`);
+    } catch (err) {
+      console.error("handleBranchChange error:", err);
+      alert(String(err));
+    }
+  }
+
+  /**
+   * Combined dropdown for version control actions: commit or merge.
+   */
+  const [anchorElCommitMerge, setAnchorElCommitMerge] = React.useState<null | HTMLElement>(null);
+  function handleCommitMergeClick(event: React.MouseEvent<HTMLButtonElement>) {
+    setAnchorElCommitMerge(event.currentTarget);
+  }
+  function handleCommitMergeClose() {
+    setAnchorElCommitMerge(null);
+  }
+
+  /**
+   * Combined dropdown for revert actions: revert unsaved changes or reset to original.
+   */
+  const [anchorElRevertReset, setAnchorElRevertReset] = React.useState<null | HTMLElement>(null);
+  function handleRevertResetClick(event: React.MouseEvent<HTMLButtonElement>) {
+    setAnchorElRevertReset(event.currentTarget);
+  }
+  function handleRevertResetClose() {
+    setAnchorElRevertReset(null);
+  }
+
+  /**
+   * Revert unsaved changes by reloading the last committed state.
+   * If no committed file exists, revert to the original data.
+   */
+  async function revertChanges() {
+    const fileName = "table5_descriptions.json";
+    try {
+      let content = await pfs.readFile(`/repo/${fileName}`, "utf8");
+      if (content instanceof Uint8Array) {
+        content = new TextDecoder("utf8").decode(content);
+      }
+      const parsedData = JSON.parse(content);
+      setAugmentedData(parsedData);
+      alert("Reverted changes to the last committed state.");
+    } catch (err) {
+      setAugmentedData(data);
+      alert("No committed data found; reverted to original state.");
+    }
+  }
+
+  /**
+   * Completely reset the data to the original file.
+   */
+  function resetToOriginal() {
+    setAugmentedData(data);
+    alert("Reset to the original file.");
+  }
+
+  // Editing logic
   function handleEdit(row: FlattenedField) {
     const rowKey = row.table_name + "." + row.column_name;
     setEditingFieldKey(rowKey);
@@ -157,7 +393,6 @@ export function Table5() {
     setTempPrimaryKey(!!row.primary_key);
     setTempForeignKey(!!row.foreign_key);
   }
-
   function handleSaveDescription(fieldKey: string) {
     const updated = augmentedData.map((item) => {
       const itemKey = item.table_name + "." + item.column_name;
@@ -166,19 +401,17 @@ export function Table5() {
           ...item,
           description: tempDescription,
           primary_key: tempPrimaryKey,
-          foreign_key: tempForeignKey,
+          foreign_key: tempForeignKey
         };
       }
       return item;
     });
     setAugmentedData(updated);
-    // exit edit mode
     setEditingFieldKey(null);
     setTempDescription("");
     setTempPrimaryKey(false);
     setTempForeignKey(false);
   }
-
   function handleCancelEdit() {
     setEditingFieldKey(null);
     setTempDescription("");
@@ -186,35 +419,24 @@ export function Table5() {
     setTempForeignKey(false);
   }
 
-  // Helper to build a fully qualified reference for the row
-  function getFieldRef(row: FlattenedField): string {
-    if (row.table_name.includes("*")) {
-      // If your table is sharded, you might do something else
-      return `\`${row.column_name}\``;
-    }
-    return `\`${row.table_schema}\`.\`${row.table_name}\`.\`${row.column_name}\``;
+  function getFieldRef(row: FlattenedField) {
+    if (row.table_name.includes("*")) return `${row.column_name}`;
+    return `${row.table_schema}.${row.table_name}.${row.column_name}`;
   }
-
-  // (Not used in "Select Field" column anymore, but let's leave it for any future usage.)
   function isFieldSelected(row: FlattenedField): boolean {
     return selectedColumns.includes(getFieldRef(row));
   }
 
-  // Column definitions (all possible). We'll filter by visibleColumns below.
+  // Column definitions
   const allColumnDefs = React.useMemo<ColumnDef<FlattenedField>[]>(() => {
     return [
       {
         name: "Select Field",
         align: "center",
         width: 60,
-        /** 
-         * UPDATED: we now always use access_instructions for FROM + SELECT,
-         * no fallback to getFieldRef().
-         */
         formatter: (row) => {
           const fromClause = row.access_instructions?.from_clause || "";
           const selectExpr = row.access_instructions?.select_expr || "";
-
           return (
             <Checkbox
               size="small"
@@ -229,12 +451,12 @@ export function Table5() {
               }}
             />
           );
-        },
+        }
       },
       {
         name: "Dataset",
         formatter: (row) => row.table_schema,
-        width: 160,
+        width: 160
       },
       {
         name: "Table Name",
@@ -243,17 +465,17 @@ export function Table5() {
             {row.table_name}
           </Link>
         ),
-        width: 160,
+        width: 160
       },
       {
         name: "Field Name",
         formatter: (row) => row.column_name,
-        width: 160,
+        width: 160
       },
       {
         name: "Data Type",
         width: 120,
-        formatter: (row) => row.data_type,
+        formatter: (row) => row.data_type
       },
       {
         name: "Field Description",
@@ -271,7 +493,7 @@ export function Table5() {
             );
           }
           return row.description || "";
-        },
+        }
       },
       {
         name: "Primary Key",
@@ -297,7 +519,7 @@ export function Table5() {
           ) : (
             <Chip label="No" size="small" variant="soft" />
           );
-        },
+        }
       },
       {
         name: "Foreign Key",
@@ -323,12 +545,12 @@ export function Table5() {
           ) : (
             <Chip label="No" size="small" variant="soft" />
           );
-        },
+        }
       },
       {
         name: "Field Mode",
         width: 120,
-        formatter: (row) => row.field_mode || "",
+        formatter: (row) => row.field_mode || ""
       },
       {
         name: "Actions",
@@ -354,13 +576,12 @@ export function Table5() {
               <PencilSimple />
             </IconButton>
           );
-        },
+        }
       },
       {
         name: "Access Instructions",
         width: 80,
         formatter: (row, rowIndex) => {
-          // Expand/collapse logic
           const isExpanded = expandedRow === rowIndex;
           return (
             <Box>
@@ -385,7 +606,6 @@ export function Table5() {
                   >
                     {row.access_instructions?.from_clause || "N/A"}
                   </Typography>
-
                   <Typography variant="caption" fontWeight="bold" sx={{ mt: 1 }}>
                     SELECT Expr
                   </Typography>
@@ -414,12 +634,11 @@ export function Table5() {
     setTableName
   ]);
 
-  // Filter columns by what's visible
   const displayedColumns = React.useMemo(() => {
     return allColumnDefs.filter((col) => visibleColumns.includes(col.name));
   }, [allColumnDefs, visibleColumns]);
 
-  // Filtering + pagination
+  // Filtering & pagination
   const uniqueTables = React.useMemo(
     () => Array.from(new Set(augmentedData.map((f) => f.table_name))),
     [augmentedData]
@@ -434,7 +653,6 @@ export function Table5() {
       if (tableFilter && row.table_name !== tableFilter) return false;
       if (datasetFilter && row.table_schema !== datasetFilter) return false;
       if (missingDescription && row.description) return false;
-
       if (searchQuery) {
         const lowerName = row.column_name.toLowerCase();
         if (!lowerName.includes(searchQuery.toLowerCase())) {
@@ -463,17 +681,13 @@ export function Table5() {
       setDialogOpen(true);
       setDescProgress(1);
       await sleep(1000);
-
       setDescProgress(2);
-      // Example: fetch from /my-schema.json
       const res = await fetch("/my-schema.json");
       if (!res.ok) {
         throw new Error(`Failed to load schema file. Status ${res.status}`);
       }
       const schema = await res.json();
       setDescFoundCount(schema.length);
-
-      // Build matched
       const matched: { dataset: string; tableName: string }[] = [];
       augmentedData.forEach((row) => {
         if (!row.description) {
@@ -486,7 +700,6 @@ export function Table5() {
           }
         }
       });
-      // Deduplicate
       const uniqueMatched: { dataset: string; tableName: string }[] = [];
       const seen = new Set<string>();
       for (const m of matched) {
@@ -497,11 +710,8 @@ export function Table5() {
         }
       }
       setMatchedTables(uniqueMatched);
-
       await sleep(2000);
-
       setDescProgress(3);
-      // Update data with new descriptions
       const updated = augmentedData.map((row) => {
         if (!row.description) {
           const tbl = schema.find((t: any) => t.table_name === row.table_name);
@@ -515,12 +725,9 @@ export function Table5() {
         return row;
       });
       setAugmentedData(updated);
-
       await sleep(2000);
-
       setDescProgress(4);
       await sleep(1200);
-
       setDescProgress(0);
       setDialogOpen(false);
     } catch (err) {
@@ -530,30 +737,6 @@ export function Table5() {
     }
   }
 
-  function handleSave() {
-    console.log("Saving updated field data:", augmentedData);
-    alert("Updated fields have been saved (check console).");
-  }
-
-  // Loading + error states
-  if (isLoading) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Card sx={{ p: 3 }}>Loading schema fields...</Card>
-      </Box>
-    );
-  }
-  if (error) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Card sx={{ p: 3, color: "error.main" }}>
-          Error loading fields: {String(error)}
-        </Card>
-      </Box>
-    );
-  }
-
-  // Multi-step "Get Descriptions" dialog content
   function renderDialogContent() {
     switch (descProgress) {
       case 1:
@@ -577,10 +760,7 @@ export function Table5() {
                 <List dense>
                   {matchedTables.map((m, idx) => (
                     <ListItem key={`${m.dataset}:${m.tableName}:${idx}`}>
-                      <ListItemText
-                        primary={m.tableName}
-                        secondary={`dataset: ${m.dataset}`}
-                      />
+                      <ListItemText primary={m.tableName} secondary={`dataset: ${m.dataset}`} />
                     </ListItem>
                   ))}
                 </List>
@@ -616,15 +796,31 @@ export function Table5() {
           </>
         );
       default:
-        return null; // or an empty fragment
+        return null;
     }
   }
 
-  // Final render
+  if (isLoading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Card sx={{ p: 3 }}>Loading schema fields...</Card>
+      </Box>
+    );
+  }
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Card sx={{ p: 3, color: "error.main" }}>
+          Error loading fields: {String(error)}
+        </Card>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ bgcolor: "var(--mui-palette-background-level1)", p: 3 }}>
       <Card>
-        {/* Step-by-step "Get Descriptions" dialog */}
+        {/* "Get Descriptions" Dialog */}
         <Dialog
           open={dialogOpen}
           BackdropProps={{ sx: { backdropFilter: "blur(5px)" } }}
@@ -643,13 +839,8 @@ export function Table5() {
           <DialogContent>{renderDialogContent()}</DialogContent>
         </Dialog>
 
-        {/* Filters and column visibility */}
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{ alignItems: "center", flexWrap: "wrap", p: 3 }}
-        >
-          {/* Search */}
+        {/* Filters and Column Toggles */}
+        <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap", p: 3 }}>
           <OutlinedInput
             placeholder="Search fields"
             value={searchQuery}
@@ -661,8 +852,6 @@ export function Table5() {
             }
             sx={{ maxWidth: "100%", width: "300px" }}
           />
-
-          {/* Table Filter */}
           <Select
             value={tableFilter}
             onChange={(e) => setTableFilter(e.target.value)}
@@ -670,14 +859,12 @@ export function Table5() {
             sx={{ maxWidth: "100%", width: "240px" }}
           >
             <Option value="">All tables</Option>
-            {uniqueTables.map((t) => (
+            {Array.from(new Set(augmentedData.map((f) => f.table_name))).map((t) => (
               <Option key={t} value={t}>
                 {t}
               </Option>
             ))}
           </Select>
-
-          {/* Dataset Filter */}
           <Select
             value={datasetFilter}
             onChange={(e) => setDatasetFilter(e.target.value)}
@@ -685,14 +872,12 @@ export function Table5() {
             sx={{ maxWidth: "100%", width: "240px" }}
           >
             <Option value="">All datasets</Option>
-            {uniqueDatasets.map((ds) => (
+            {Array.from(new Set(augmentedData.map((f) => f.table_schema))).map((ds) => (
               <Option key={ds} value={ds}>
                 {ds}
               </Option>
             ))}
           </Select>
-
-          {/* Missing Description Switch */}
           <FormControlLabel
             control={
               <Switch
@@ -702,8 +887,6 @@ export function Table5() {
             }
             label="Missing Description"
           />
-
-          {/* Columns Visibility Button */}
           <Button variant="outlined" startIcon={<ListIcon />} onClick={openMenu}>
             Columns
           </Button>
@@ -727,7 +910,7 @@ export function Table5() {
 
         <Divider />
 
-        {/* DataTable with displayedColumns */}
+        {/* Data Table */}
         <Box sx={{ overflowX: "auto" }}>
           <DataTable<FlattenedField> columns={displayedColumns} rows={paginatedRows} />
         </Box>
@@ -739,27 +922,101 @@ export function Table5() {
           component="div"
           count={totalCount}
           page={currentPage}
-          onPageChange={handlePageChange}
+          onPageChange={(_e, newPage) => setCurrentPage(newPage)}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleRowsPerPageChange}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setCurrentPage(0);
+          }}
           rowsPerPageOptions={[5, 10, 25]}
         />
 
         <Divider />
 
-        {/* Bottom buttons */}
+        {/* Bottom Actions */}
         <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ p: 2 }}>
+          {/* Branch Selector Dropdown */}
+          <Select
+            value={currentBranch}
+            onChange={(e) => handleBranchChange(e.target.value as string)}
+            size="small"
+            variant="outlined"
+          >
+            <MenuItem value="main">main</MenuItem>
+            <MenuItem value="feature/desc-updates">feature/desc-updates</MenuItem>
+          </Select>
+
+          {/* Combined Commit / Merge Dropdown */}
+          <Button variant="outlined" onClick={handleCommitMergeClick} endIcon={<CaretDown />}>
+            Version Actions
+          </Button>
+          <Menu
+            anchorEl={anchorElCommitMerge}
+            open={Boolean(anchorElCommitMerge)}
+            onClose={handleCommitMergeClose}
+          >
+            <MenuItem
+              onClick={() => {
+                handleCommitMergeClose();
+                commitToCurrentBranch();
+              }}
+            >
+              Commit to {currentBranch}
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                handleCommitMergeClose();
+                mergeFeatureIntoMain();
+              }}
+            >
+              Merge Feature → Main
+            </MenuItem>
+          </Menu>
+
+          {/* Update BigQuery Button */}
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleUpdateBigQuery}
+            disabled={!mainHasNewCommits}
+          >
+            {updatingBQ ? "Updating" : "Update BigQuery"}
+          </Button>
+
+          {/* Get Descriptions Button */}
           <Button variant="contained" onClick={handleGetDescriptions}>
             Get Descriptions
           </Button>
-          <Button variant="contained" color="secondary" onClick={handleSave}>
-            Save
+
+          {/* Combined Revert / Reset Dropdown */}
+          <Button variant="outlined" color="error" onClick={handleRevertResetClick} endIcon={<CaretDown />}>
+            Revert / Reset
           </Button>
-          <Button
-            variant="contained"
-            disabled={selectedColumns.length === 0}
-            onClick={() => openDrawer()}
+          <Menu
+            anchorEl={anchorElRevertReset}
+            open={Boolean(anchorElRevertReset)}
+            onClose={handleRevertResetClose}
           >
+            <MenuItem
+              onClick={() => {
+                handleRevertResetClose();
+                revertChanges();
+              }}
+            >
+              Revert Changes
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                handleRevertResetClose();
+                resetToOriginal();
+              }}
+            >
+              Reset to Original
+            </MenuItem>
+          </Menu>
+
+          {/* View Query Button */}
+          <Button variant="contained" disabled={selectedColumns.length === 0} onClick={() => openDrawer()}>
             View Query
           </Button>
         </Stack>
