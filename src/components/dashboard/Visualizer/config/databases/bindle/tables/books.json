@@ -1,32 +1,52 @@
 {
-  "name": "books",
-  "description": "All books available in the Bindle's library.",
+  "name": "LIST",
+  "description": "Table containing information about lists.",
   "columns": [
     {
       "name": "id",
-      "description": "Unique identifier of the book.",
+      "description": "Primary key",
       "key": true,
       "type": "integer"
     },
     {
+      "name": "_fivetran_start",
+      "description": "Fivetran start timestamp",
+      "type": "datetime"
+    },
+    {
+      "name": "_fivetran_active",
+      "description": "Fivetran active flag",
+      "type": "boolean"
+    },
+    {
+      "name": "_fivetran_end",
+      "description": "Fivetran end timestamp",
+      "type": "datetime"
+    },
+    {
+      "name": "created_date",
+      "description": "Date when the list was created",
+      "type": "datetime"
+    },
+    {
+      "name": "description",
+      "description": "Description of the list",
+      "type": "text"
+    },
+    {
       "name": "name",
-      "description": "Name of the book.",
+      "description": "Name of the list",
       "type": "text"
     },
     {
-      "name": "slug",
-      "description": "Identifer of a book used in URLs. For example https://www.bindle.com/books/final-future. Usually generated from book’s name.",
-      "type": "text"
+      "name": "modified_date",
+      "description": "Date when the list was last modified",
+      "type": "datetime"
     },
     {
-      "name": "genre",
-      "description": "Book’s genre.",
+      "name": "type",
+      "description": "Type of the list",
       "type": "text"
-    },
-    {
-      "name": "pages_count",
-      "description": "Number of pages in the book.",
-      "type": "integer"
     }
   ]
 }

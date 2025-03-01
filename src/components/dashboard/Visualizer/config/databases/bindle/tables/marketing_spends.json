@@ -1,51 +1,91 @@
 {
-  "name": "marketing_spends",
-  "description": "A table that keeps track of Bindle's marketing investments per campaign, per day.",
+  "name": "EVENT",
+  "description": "Table containing information about events.",
   "columns": [
     {
       "name": "id",
-      "description": "Unique identifier of spend, just a primary key in a table.",
+      "description": "Primary key",
       "key": true,
       "type": "integer"
     },
     {
-      "name": "spent_at",
-      "description": "The date of a spend. Spend data is usually reported by date.",
-      "type": "date"
-    },
-    {
-      "name": "amount",
-      "description": "Amount of money in USD.",
+      "name": "opt_in_subscriber_id",
+      "description": "Foreign key referencing SUBSCRIBER",
       "type": "integer"
     },
     {
-      "name": "clicks",
-      "description": "Number of clicks on the ad on this date.",
+      "name": "send_id",
+      "description": "Foreign key referencing SEND",
       "type": "integer"
     },
     {
-      "name": "utm_source",
-      "description": "utm_source of marketing campaign.",
+      "name": "subscriber_key",
+      "description": "Foreign key referencing SUBSCRIBER",
+      "type": "integer"
+    },
+    {
+      "name": "triggered_send_id",
+      "description": "Foreign key referencing TRIGGERED_SEND",
+      "type": "integer"
+    },
+    {
+      "name": "unsubscribed_list",
+      "description": "Foreign key referencing LIST",
+      "type": "integer"
+    },
+    {
+      "name": "batch_id",
+      "description": "Batch ID of the event",
+      "type": "integer"
+    },
+    {
+      "name": "bounce_category",
+      "description": "Bounce category of the event",
       "type": "text"
     },
     {
-      "name": "utm_campaign",
-      "description": "utm_campaign of marketing campaign.",
+      "name": "bounce_type",
+      "description": "Bounce type of the event",
       "type": "text"
     },
     {
-      "name": "utm_term",
-      "description": "utm_term of marketing campaign.",
+      "name": "created_date",
+      "description": "Date when the event was created",
+      "type": "datetime"
+    },
+    {
+      "name": "event_date",
+      "description": "Date of the event",
+      "type": "datetime"
+    },
+    {
+      "name": "event_type",
+      "description": "Type of the event",
       "type": "text"
     },
     {
-      "name": "utm_content",
-      "description": "utm_content of marketing campaign.",
+      "name": "modified_date",
+      "description": "Date when the event was last modified",
+      "type": "datetime"
+    },
+    {
+      "name": "question",
+      "description": "Question associated with the event",
       "type": "text"
     },
     {
-      "name": "utm_medium",
-      "description": "utm_medium of marketing campaign.",
+      "name": "smtp_code",
+      "description": "SMTP code of the event",
+      "type": "text"
+    },
+    {
+      "name": "smtp_reason",
+      "description": "SMTP reason of the event",
+      "type": "text"
+    },
+    {
+      "name": "url",
+      "description": "URL associated with the event",
       "type": "text"
     }
   ]

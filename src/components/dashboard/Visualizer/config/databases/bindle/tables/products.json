@@ -1,22 +1,67 @@
 {
-  "name": "products",
-  "description": "The list of all purchasable Bindle products (subscriptions).",
+  "name": "EMAIL",
+  "description": "Table containing information about emails.",
   "columns": [
     {
       "name": "id",
-      "description": "Unique identifier of a product.",
+      "description": "Primary key",
       "key": true,
       "type": "integer"
     },
     {
-      "name": "name",
-      "description": "Name of a product.",
+      "name": "_fivetran_start",
+      "description": "Fivetran start timestamp",
+      "type": "datetime"
+    },
+    {
+      "name": "_fivetran_active",
+      "description": "Fivetran active flag",
+      "type": "boolean"
+    },
+    {
+      "name": "_fivetran_end",
+      "description": "Fivetran end timestamp",
+      "type": "datetime"
+    },
+    {
+      "name": "asset_id",
+      "description": "Asset ID of the email",
+      "type": "integer"
+    },
+    {
+      "name": "character_set",
+      "description": "Character set of the email",
       "type": "text"
     },
     {
-      "name": "price",
-      "description": "Price of a product",
-      "type": "float"
+      "name": "created_date",
+      "description": "Date when the email was created",
+      "type": "datetime"
+    },
+    {
+      "name": "modified_date",
+      "description": "Date when the email was last modified",
+      "type": "datetime"
+    },
+    {
+      "name": "name",
+      "description": "Name of the email",
+      "type": "text"
+    },
+    {
+      "name": "pre_header",
+      "description": "Pre-header of the email",
+      "type": "text"
+    },
+    {
+      "name": "subject",
+      "description": "Subject of the email",
+      "type": "text"
+    },
+    {
+      "name": "text_body",
+      "description": "Text body of the email",
+      "type": "text"
     }
   ]
 }

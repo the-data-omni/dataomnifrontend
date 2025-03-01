@@ -1,32 +1,90 @@
 {
-  "schema": "web_analytics",
-  "name": "events",
-  "description": "This table contains all events that happen on Bindle's website pages. Events are tracked during a pageview, that's why there's a has-many relation between pageviews and events.",
+  
+  "name": "MOBILE_PUSH_DETAIL_EXTRACT",
+  "description": "Table containing detailed information extracted from mobile push notifications.",
   "columns": [
     {
-      "name": "pageview_id",
-      "description": "Category parameter of an event, for example Signup.",
+      "name": "contact_key",
+      "description": "Contact key",
+      "key": true,
       "type": "text"
     },
     {
-      "name": "category",
-      "description": "Action parameter of an event, for example Click.",
+      "name": "device_id",
+      "description": "Device ID",
+      "key": true,
       "type": "text"
     },
     {
-      "name": "action",
-      "description": "Name parameter of an event, for example Signup for free.",
+      "name": "request_id",
+      "description": "Request ID",
+      "key": true,
       "type": "text"
     },
     {
-      "name": "name",
-      "description": "Unique identifier of a record inside pageviews table. All events happen within one pageview. ⚠️",
-      "type": "text"
+      "name": "message_id",
+      "description": "Foreign key referencing PUSH_MESSAGE",
+      "type": "integer"
     },
     {
-      "name": "created_at",
-      "description": "Timestamp of an event.",
+      "name": "date_time_send",
+      "description": "Date and time the push notification was sent",
       "type": "datetime"
+    },
+    {
+      "name": "inbox_message_downloaded",
+      "description": "Flag indicating if the inbox message was downloaded",
+      "type": "boolean"
+    },
+    {
+      "name": "inbox_message_opened",
+      "description": "Flag indicating if the inbox message was opened",
+      "type": "boolean"
+    },
+    {
+      "name": "message_opened",
+      "description": "Flag indicating if the message was opened",
+      "type": "boolean"
+    },
+    {
+      "name": "open_date",
+      "description": "Date when the message was opened",
+      "type": "datetime"
+    },
+    {
+      "name": "platform",
+      "description": "Platform of the device",
+      "type": "text"
+    },
+    {
+      "name": "platform_version",
+      "description": "Version of the platform",
+      "type": "text"
+    },
+    {
+      "name": "push_job_id",
+      "description": "Push job ID",
+      "type": "integer"
+    },
+    {
+      "name": "service_response",
+      "description": "Service response",
+      "type": "text"
+    },
+    {
+      "name": "status",
+      "description": "Status of the push notification",
+      "type": "text"
+    },
+    {
+      "name": "system_token",
+      "description": "System token",
+      "type": "text"
+    },
+    {
+      "name": "time_in_app",
+      "description": "Time spent in the app",
+      "type": "integer"
     }
   ]
 }

@@ -1,26 +1,112 @@
 {
-  "name": "books_users",
-  "description": "A join table for many-to-many relationship between users and books.",
+  "name": "TRIGGERED_SEND",
+  "description": "Table containing information about triggered sends.",
   "columns": [
     {
-      "name": "book_id",
-      "description": "Book’s id.",
+      "name": "id",
+      "description": "Primary key",
+      "key": true,
       "type": "integer"
     },
     {
-      "name": "user_id",
-      "description": "User’s id.",
+      "name": "email_id",
+      "description": "Foreign key referencing EMAIL",
       "type": "integer"
     },
     {
-      "name": "last_page",
-      "description": "A number of the last page a user read in the book.",
+      "name": "list_id",
+      "description": "Foreign key referencing LIST",
       "type": "integer"
     },
     {
-      "name": "created_at",
-      "description": "When the user started reading the book.",
+      "name": "auto_add_subscribers",
+      "description": "Flag indicating if subscribers are automatically added",
+      "type": "boolean"
+    },
+    {
+      "name": "auto_update_subscribers",
+      "description": "Flag indicating if subscribers are automatically updated",
+      "type": "boolean"
+    },
+    {
+      "name": "bcc_email",
+      "description": "BCC email address",
+      "type": "text"
+    },
+    {
+      "name": "created_date",
+      "description": "Date when the triggered send was created",
       "type": "datetime"
+    },
+    {
+      "name": "modified_date",
+      "description": "Date when the triggered send was last modified",
+      "type": "datetime"
+    },
+    {
+      "name": "description",
+      "description": "Description of the triggered send",
+      "type": "text"
+    },
+    {
+      "name": "dynamic_email_subject",
+      "description": "Dynamic email subject",
+      "type": "text"
+    },
+    {
+      "name": "email_subject",
+      "description": "Email subject of the triggered send",
+      "type": "text"
+    },
+    {
+      "name": "from_address",
+      "description": "From address of the triggered send",
+      "type": "text"
+    },
+    {
+      "name": "from_name",
+      "description": "From name of the triggered send",
+      "type": "text"
+    },
+    {
+      "name": "is_multipart",
+      "description": "Flag indicating if the email is multipart",
+      "type": "boolean"
+    },
+    {
+      "name": "is_wrapped",
+      "description": "Flag indicating if the email is wrapped",
+      "type": "boolean"
+    },
+    {
+      "name": "name",
+      "description": "Name of the triggered send",
+      "type": "text"
+    },
+    {
+      "name": "priority",
+      "description": "Priority of the triggered send",
+      "type": "integer"
+    },
+    {
+      "name": "send_limit",
+      "description": "Send limit of the triggered send",
+      "type": "integer"
+    },
+    {
+      "name": "send_window_close",
+      "description": "Send window close time",
+      "type": "datetime"
+    },
+    {
+      "name": "send_window_open",
+      "description": "Send window open time",
+      "type": "datetime"
+    },
+    {
+      "name": "triggered_send_status",
+      "description": "Status of the triggered send",
+      "type": "text"
     }
   ]
 }

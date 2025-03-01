@@ -1,67 +1,76 @@
 {
-  "schema": "mobile_analytics",
-  "name": "events",
-  "description": "This analytics table contains all events fired by Bindle's mobile app.",
+  "name": "PUSH_APPLICATION",
+  "description": "Table containing information about push applications.",
   "columns": [
     {
-      "name": "event_id",
-      "description": "Unique identifier of an event.",
-      "type": "text",
-      "key": true
-    },
-    {
-      "name": "category",
-      "description": "Category parameter of an event, for example onboarding.",
-      "type": "text"
-    },
-    {
-      "name": "action",
-      "description": "Action parameter of an event, for example screenview.",
-      "type": "text"
-    },
-    {
-      "name": "name",
-      "description": "Name parameter of an event, for example bindle-content.",
-      "type": "text"
-    },
-    {
-      "name": "screen_resolution",
-      "description": "Resolution of a user’s smartphone, for example 375x812.",
-      "type": "text"
-    },
-    {
-      "name": "device_type",
-      "description": "Model of a user’s smartphone and the version of the OS, for example iPhone 7,12.1.0.",
-      "type": "text"
-    },
-    {
-      "name": "user_id",
-      "description": "If user is logged in – ID of a user in the users table.",
+      "name": "id",
+      "description": "Primary key",
+      "key": true,
       "type": "integer"
     },
     {
-      "name": "adid",
-      "description": "Unique identifier of a user’s smartphone, same as in Adjust callbacks table.",
+      "name": "apns_enabled",
+      "description": "Flag indicating if APNS is enabled",
+      "type": "boolean"
+    },
+    {
+      "name": "configuration_custom_keys",
+      "description": "Custom keys configuration",
       "type": "text"
     },
     {
-      "name": "country",
-      "description": "Country derived from user’s IP address.",
+      "name": "configuration_custom_sound",
+      "description": "Custom sound configuration",
       "type": "text"
     },
     {
-      "name": "custom_parameters",
-      "description": "All custom parameters of an even in a key-value format.",
-      "type": "JSON"
+      "name": "configuration_message_categories",
+      "description": "Message categories configuration",
+      "type": "text"
     },
     {
-      "name": "created_at",
-      "description": "Timestamp of an event.",
+      "name": "configuration_open_direct",
+      "description": "Open direct configuration",
+      "type": "text"
+    },
+    {
+      "name": "configuration_payload_editor",
+      "description": "Payload editor configuration",
+      "type": "text"
+    },
+    {
+      "name": "created_date",
+      "description": "Date when the push application was created",
       "type": "datetime"
     },
     {
-      "name": "app_version",
-      "description": "Version of the Bindle app a user is using, for example 1.1.1.",
+      "name": "description",
+      "description": "Description of the push application",
+      "type": "text"
+    },
+    {
+      "name": "device_endpoint",
+      "description": "Device endpoint of the push application",
+      "type": "text"
+    },
+    {
+      "name": "gcm_enabled",
+      "description": "Flag indicating if GCM is enabled",
+      "type": "boolean"
+    },
+    {
+      "name": "key",
+      "description": "Key of the push application",
+      "type": "text"
+    },
+    {
+      "name": "modified_date",
+      "description": "Date when the push application was last modified",
+      "type": "datetime"
+    },
+    {
+      "name": "name",
+      "description": "Name of the push application",
       "type": "text"
     }
   ]

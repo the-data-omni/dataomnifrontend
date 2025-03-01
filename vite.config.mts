@@ -1,8 +1,10 @@
 import path from 'node:path';
-
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import type { Plugin } from 'vite';
+
+// Polyfill plugins
+import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill';
 
 // https://github.com/vitejs/vite/issues/15012#issuecomment-1825035992
 function muteWarningsPlugin(warningsToIgnore: string[][]): Plugin {
@@ -45,16 +47,40 @@ function muteWarningsPlugin(warningsToIgnore: string[][]): Plugin {
   };
 }
 
-// See this: https://github.com/vitejs/vite/issues/15012
 const warningsToIgnore = [
   ['SOURCEMAP_ERROR', "Can't resolve original location of error"],
   ['INVALID_ANNOTATION', 'contains an annotation that Rollup cannot interpret'],
 ];
 
+// -----------------------------------
+// VITE CONFIG
+// -----------------------------------
 export default defineConfig({
-  plugins: [react(), muteWarningsPlugin(warningsToIgnore)],
+  plugins: [
+    react(),
+    muteWarningsPlugin(warningsToIgnore)
+  ],
+
+  // The crucial part for Buffer:
+  optimizeDeps: {
+    esbuildOptions: {
+      // Enable global polyfills
+      define: {
+        global: 'globalThis'
+      },
+      plugins: [
+        NodeGlobalsPolyfillPlugin({
+          buffer: true
+        })
+      ]
+    }
+  },
+
   resolve: {
     alias: [
+      // Vite tries to avoid Node built-ins by default, so we alias 'buffer' -> the installed 'buffer' pkg
+      { find: 'buffer', replacement: 'buffer' },
+
       {
         find: /^~(.+)/,
         replacement: path.join(process.cwd(), 'node_modules/$1'),
@@ -65,15 +91,13 @@ export default defineConfig({
       },
     ],
   },
+
   server: {
     port: 3000,
     proxy: {
-      // Any request to "/api" will be forwarded to "http://localhost:5000"
-      "/api/generate_sql": {
-        target: "https://schema-scoring-api-242009193450.us-central1.run.app",
+      '/api/generate_sql': {
+        target: 'https://schema-scoring-api-2420.us-central1.run.app',
         changeOrigin: true,
-        // If you want to rewrite paths (optional):
-        //   rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

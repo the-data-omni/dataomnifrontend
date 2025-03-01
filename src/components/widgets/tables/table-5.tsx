@@ -681,25 +681,76 @@ export function Table5() {
       setDialogOpen(true);
       setDescProgress(1);
       await sleep(1000);
+  
+      // 1) Attempt to load localStorage data
+      let localScraped: {
+        tableName: string;
+        columnName: string;
+        columnDesc: string;
+      }[] = [];
+      try {
+        const stored = localStorage.getItem("scrapedData");
+        if (stored) {
+          localScraped = JSON.parse(stored);
+        }
+      } catch (err) {
+        console.error("Error parsing scrapedData from localStorage:", err);
+      }
+  
+      // 2) Build a quick lookup from localScraped
+      //    Key = (tableName + "." + columnName) in lowercase => description
+      const localMap = new Map<string, string>();
+      localScraped.forEach((item) => {
+        const key =
+          item.tableName.toLowerCase() + "." + item.columnName.toLowerCase();
+        localMap.set(key, item.columnDesc);
+      });
+  
       setDescProgress(2);
+  
+      // 3) Fetch /my-schema.json
       const res = await fetch("/my-schema.json");
       if (!res.ok) {
         throw new Error(`Failed to load schema file. Status ${res.status}`);
       }
       const schema = await res.json();
+  
       setDescFoundCount(schema.length);
+  
+      // 4) Prepare to identify matched tables (for your progress UI)
       const matched: { dataset: string; tableName: string }[] = [];
+  
+      // 5) Merge descriptions from localStorage + /my-schema.json
       augmentedData.forEach((row) => {
         if (!row.description) {
-          const tbl = schema.find((t: any) => t.table_name === row.table_name);
-          if (tbl && tbl.columns) {
-            const col = tbl.columns.find((c: any) => c.column_name === row.column_name);
-            if (col && col.description) {
-              matched.push({ dataset: row.table_schema, tableName: row.table_name });
+          // Lowercase row's table & col
+          const rowTableLower = row.table_name.toLowerCase();
+          const rowColLower = row.column_name.toLowerCase();
+  
+          // First try localMap
+          const localKey = rowTableLower + "." + rowColLower;
+          const localDesc = localMap.get(localKey);
+          if (localDesc) {
+            matched.push({ dataset: row.table_schema, tableName: row.table_name });
+          } else {
+            // Then check /my-schema.json in a case-insensitive manner
+            // i.e. find the table with matching toLowerCase
+            const tbl = schema.find(
+              (t: any) => t.table_name.toLowerCase() === rowTableLower
+            );
+            if (tbl && tbl.columns) {
+              const col = tbl.columns.find(
+                (c: any) => c.column_name.toLowerCase() === rowColLower
+              );
+              if (col && col.description) {
+                matched.push({ dataset: row.table_schema, tableName: row.table_name });
+              }
             }
           }
         }
       });
+  
+      // Deduplicate matched
       const uniqueMatched: { dataset: string; tableName: string }[] = [];
       const seen = new Set<string>();
       for (const m of matched) {
@@ -710,13 +761,31 @@ export function Table5() {
         }
       }
       setMatchedTables(uniqueMatched);
+  
       await sleep(2000);
       setDescProgress(3);
+  
+      // 6) Actually update augmentedData
       const updated = augmentedData.map((row) => {
         if (!row.description) {
-          const tbl = schema.find((t: any) => t.table_name === row.table_name);
+          const rowTableLower = row.table_name.toLowerCase();
+          const rowColLower = row.column_name.toLowerCase();
+  
+          // First try localMap
+          const localKey = rowTableLower + "." + rowColLower;
+          const localDesc = localMap.get(localKey);
+          if (localDesc) {
+            return { ...row, description: localDesc };
+          }
+  
+          // Then fallback to /my-schema.json
+          const tbl = schema.find(
+            (t: any) => t.table_name.toLowerCase() === rowTableLower
+          );
           if (tbl && tbl.columns) {
-            const col = tbl.columns.find((c: any) => c.column_name === row.column_name);
+            const col = tbl.columns.find(
+              (c: any) => c.column_name.toLowerCase() === rowColLower
+            );
             if (col && col.description) {
               return { ...row, description: col.description };
             }
@@ -725,6 +794,7 @@ export function Table5() {
         return row;
       });
       setAugmentedData(updated);
+  
       await sleep(2000);
       setDescProgress(4);
       await sleep(1200);
@@ -736,6 +806,7 @@ export function Table5() {
       setDialogOpen(false);
     }
   }
+  
 
   function renderDialogContent() {
     switch (descProgress) {

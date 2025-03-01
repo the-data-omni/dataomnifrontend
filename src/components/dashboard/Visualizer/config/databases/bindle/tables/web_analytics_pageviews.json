@@ -1,58 +1,164 @@
+
 {
-  "schema": "web_analytics",
-  "name": "pageviews",
-  "description": "This table contains all pageviews of Bindle's website.",
+  
+  "name": "SEND",
+  "description": "Table containing information about sends.",
   "columns": [
     {
-      "name": "pageview_id",
-      "description": "Unique identifier of a pageview.",
-      "type": "text",
-      "key": true
-    },
-    {
-      "name": "visitor_id",
-      "description": "Unique identifier of a visitor. A fingerprint used to keep track of guest visitors who haven’t had signed up.",
-      "type": "text"
-    },
-    {
-      "name": "user_id",
-      "description": "If user is logged in – ID of a user in users table.",
+      "name": "id",
+      "description": "Primary key",
+      "key": true,
       "type": "integer"
     },
     {
-      "name": "url",
-      "description": "URL of the visited page.",
+      "name": "email_id",
+      "description": "Foreign key referencing EMAIL",
+      "type": "integer"
+    },
+    {
+      "name": "bcc_email",
+      "description": "BCC email address",
       "type": "text"
     },
     {
-      "name": "referer_url",
-      "description": "URL of the previous page where user clicked on a link with URL.",
-      "type": "text"
-    },
-    {
-      "name": "screen_resolution",
-      "description": "Screen resolution of a user’s device. Example: 1024x1366.",
-      "type": "text"
-    },
-    {
-      "name": "device_type",
-      "description": "Type of a user’s device. Could be mobile, tablet or desktop.",
-      "type": "text"
-    },
-    {
-      "name": "custom_parameters",
-      "description": "All custom parameters of a pageview in a key-value format. Could be added per page, for example we might add ab_test_variation key to keep track of what AB-test variation user had seen.",
-      "type": "JSON"
-    },
-    {
-      "name": "created_at",
-      "description": "Timestamp of a pageview.",
+      "name": "created_date",
+      "description": "Date when the send was created",
       "type": "datetime"
     },
     {
-      "name": "country",
-      "description": "Country derived from user’s IP address.",
+      "name": "duplicates",
+      "description": "Number of duplicate sends",
+      "type": "integer"
+    },
+    {
+      "name": "email_name",
+      "description": "Name of the email",
       "type": "text"
+    },
+    {
+      "name": "existing_undeliverables",
+      "description": "Number of existing undeliverables",
+      "type": "integer"
+    },
+    {
+      "name": "existing_unsubscribes",
+      "description": "Number of existing unsubscribes",
+      "type": "integer"
+    },
+    {
+      "name": "forwarded_emails",
+      "description": "Number of forwarded emails",
+      "type": "integer"
+    },
+    {
+      "name": "from_address",
+      "description": "From address",
+      "type": "text"
+    },
+    {
+      "name": "from_name",
+      "description": "From name",
+      "type": "text"
+    },
+    {
+      "name": "hard_bounces",
+      "description": "Number of hard bounces",
+      "type": "integer"
+    },
+    {
+      "name": "invalid_addresses",
+      "description": "Number of invalid addresses",
+      "type": "integer"
+    },
+    {
+      "name": "is_always_on",
+      "description": "Flag indicating if the send is always on",
+      "type": "boolean"
+    },
+    {
+      "name": "is_multipart",
+      "description": "Flag indicating if the send is multipart",
+      "type": "boolean"
+    },
+    {
+      "name": "missing_addresses",
+      "description": "Number of missing addresses",
+      "type": "integer"
+    },
+    {
+      "name": "modified_date",
+      "description": "Date when the send was last modified",
+      "type": "datetime"
+    },
+    {
+      "name": "number_delivered",
+      "description": "Number of delivered emails",
+      "type": "integer"
+    },
+    {
+      "name": "number_errored",
+      "description": "Number of errored sends",
+      "type": "integer"
+    },
+    {
+      "name": "number_excluded",
+      "description": "Number of excluded sends",
+      "type": "integer"
+    },
+    {
+      "name": "number_sent",
+      "description": "Number of sent emails",
+      "type": "integer"
+    },
+    {
+      "name": "number_targeted",
+      "description": "Number of targeted sends",
+      "type": "integer"
+    },
+    {
+      "name": "other_bounces",
+      "description": "Number of other bounces",
+      "type": "integer"
+    },
+    {
+      "name": "preview_url",
+      "description": "Preview URL",
+      "type": "text"
+    },
+    {
+      "name": "send_date",
+      "description": "Send date",
+      "type": "datetime"
+    },
+    {
+      "name": "soft_bounces",
+      "description": "Number of soft bounces",
+      "type": "integer"
+    },
+    {
+      "name": "status",
+      "description": "Status of the send",
+      "type": "text"
+    },
+    {
+      "name": "subject",
+      "description": "Subject of the send",
+      "type": "text"
+    },
+    {
+      "name": "unique_clicks",
+      "description": "Number of unique clicks",
+      "type": "integer"
+    },
+    {
+      "name": "unique_opens",
+      "description": "Number of unique opens",
+      "type": "integer"
+    },
+    {
+      "name": "unsubscribes",
+      "description": "Number of unsubscribes",
+      "type": "integer"
     }
   ]
 }

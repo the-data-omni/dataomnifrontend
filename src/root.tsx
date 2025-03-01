@@ -33,6 +33,7 @@ import { QueryDrawerProvider } from '@/components/dashboard/chat/context/query-d
 
 import { GlobalQueryDrawer } from '@/components/dashboard/GlobalQueryDrawer';
 import { WebLLMProvider } from "./components/dashboard/web-llm-engine-context";
+import { AugmentedDataProvider } from "@/hooks/utils/AugmentedDataContext";
 
 const metadata = { title: appConfig.name } satisfies Metadata;
 
@@ -91,7 +92,9 @@ export function Root({ children }: RootProps): React.JSX.Element {
 				
 					  <QueryDrawerProvider>
 					  <GlobalQueryDrawer />
+					  {/* <AugmentedDataProvider> */}
 										{children}
+										{/* </AugmentedDataProvider> */}
 										</QueryDrawerProvider>
 										
 										</ScoreProvider>

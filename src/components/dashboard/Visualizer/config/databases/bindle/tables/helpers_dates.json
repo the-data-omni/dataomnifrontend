@@ -1,18 +1,42 @@
 {
-  "schema": "helpers",
-  "name": "dates",
-  "description": "A helper table with consecutive dates. Might be useful to join sparse timelines to for reporting metrics per day.",
+  "name": "SUBSCRIBER",
+  "description": "Table containing information about subscribers.",
   "columns": [
     {
       "name": "id",
-      "description": "Unique identifier of a date. Just a primary key, an index of the table.",
+      "description": "Primary key",
       "key": true,
       "type": "integer"
     },
     {
-      "name": "date",
-      "description": "A date. By joining the very sparse timeline data to the consecutive range of dates we won’t have gaps.",
-      "type": "date"
+      "name": "subscriber_key",
+      "description": "Subscriber key",
+      "type": "integer"
+    },
+    {
+      "name": "created_date",
+      "description": "Date when the subscriber was created",
+      "type": "datetime"
+    },
+    {
+      "name": "email_address",
+      "description": "Email address of the subscriber",
+      "type": "text"
+    },
+    {
+      "name": "email_type_preference",
+      "description": "Email type preference of the subscriber",
+      "type": "text"
+    },
+    {
+      "name": "status",
+      "description": "Status of the subscriber",
+      "type": "text"
+    },
+    {
+      "name": "unsubscribed_date",
+      "description": "Date when the subscriber unsubscribed",
+      "type": "datetime"
     }
   ]
 }

@@ -1,32 +1,149 @@
 {
-  "name": "accounts",
-  "description": "Accounts of platforms users can sign up with. Bindle users might have Facebook or Email accounts.",
-  "columns": [
-    {
-      "name": "id",
-      "description": "Unique identifier of an account.",
-      "key": true,
-      "type": "integer"
-    },
-    {
-      "name": "user_id",
-      "description": "User’s id.",
-      "type": "integer"
-    },
-    {
-      "name": "platform",
-      "description": "Account’s platform. Bindle allows email and facebook signups.",
-      "type": "text"
-    },
-    {
-      "name": "email",
-      "description": "Email attached to the account. Note that different platforms could have different emails.",
-      "type": "text"
-    },
-    {
-      "name": "created_at",
-      "description": "Timestamp when this account was created. created_at of the first account is user’s signup timestamp.",
-      "type": "datetime"
-    }
-  ]
-}
+    "name": "JOURNEY",
+    "description": "Table containing information about journeys.",
+    "columns": [
+      {
+        "name": "id",
+        "description": "Primary key",
+        "key": true,
+        "type": "integer"
+      },
+      {
+        "name": "version",
+        "description": "Version of the journey",
+        "type": "text"
+      },
+      {
+        "name": "activities",
+        "description": "Activities within the journey",
+        "type": "text"
+      },
+      {
+        "name": "category_id",
+        "description": "Category ID of the journey",
+        "type": "integer"
+      },
+      {
+        "name": "channel",
+        "description": "Channel used by the journey",
+        "type": "text"
+      },
+      {
+        "name": "created_date",
+        "description": "Date when the journey was created",
+        "type": "datetime"
+      },
+      {
+        "name": "defaults",
+        "description": "Default settings for the journey",
+        "type": "text"
+      },
+      {
+        "name": "definition_id",
+        "description": "Definition ID of the journey",
+        "type": "integer"
+      },
+      {
+        "name": "definition_type",
+        "description": "Definition type of the journey",
+        "type": "text"
+      },
+      {
+        "name": "description",
+        "description": "Description of the journey",
+        "type": "text"
+      },
+      {
+        "name": "entry_mode",
+        "description": "Entry mode of the journey",
+        "type": "text"
+      },
+      {
+        "name": "execution_mode",
+        "description": "Execution mode of the journey",
+        "type": "text"
+      },
+      {
+        "name": "exits",
+        "description": "Exits from the journey",
+        "type": "text"
+      },
+      {
+        "name": "goals",
+        "description": "Goals of the journey",
+        "type": "text"
+      },
+      {
+        "name": "key",
+        "description": "Key of the journey",
+        "type": "text"
+      },
+      {
+        "name": "last_published_date",
+        "description": "Date when the journey was last published",
+        "type": "datetime"
+      },
+      {
+        "name": "meta_data",
+        "description": "Metadata associated with the journey",
+        "type": "text"
+      },
+      {
+        "name": "modified_date",
+        "description": "Date when the journey was last modified",
+        "type": "datetime"
+      },
+      {
+        "name": "name",
+        "description": "Name of the journey",
+        "type": "text"
+      },
+      {
+        "name": "notifiers",
+        "description": "Notifiers for the journey",
+        "type": "text"
+      },
+      {
+        "name": "scheduled_status",
+        "description": "Scheduled status of the journey",
+        "type": "text"
+      },
+      {
+        "name": "stats",
+        "description": "Statistics for the journey",
+        "type": "text"
+      },
+      {
+        "name": "status",
+        "description": "Status of the journey",
+        "type": "text"
+      },
+      {
+        "name": "tags",
+        "description": "Tags associated with the journey",
+        "type": "text"
+      },
+      {
+        "name": "triggers",
+        "description": "Triggers for the journey",
+        "type": "text"
+      },
+      {
+        "name": "workflow_api_version",
+        "description": "Workflow API version of the journey",
+        "type": "text"
+      }
+    ]
+  }
+
+
+
+
+
+
+
+
+
+
+
+

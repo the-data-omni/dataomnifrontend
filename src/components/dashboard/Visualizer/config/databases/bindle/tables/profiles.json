@@ -1,37 +1,67 @@
 {
-  "name": "profiles",
-  "description": "To avoid growing the users table further, users' profile information was extracted to this table.",
+  "name": "PUSH_MESSAGE",
+  "description": "Table containing information about push messages.",
   "columns": [
     {
       "name": "id",
+      "description": "Primary key",
       "key": true,
-      "type": "number",
-      "description": "Unique identifier of a profile."
+      "type": "integer"
     },
     {
-      "name": "user_id",
-      "type": "number",
-      "description": "User’s id."
+      "name": "app_name",
+      "description": "Foreign key referencing PUSH_APPLICATION",
+      "type": "integer"
     },
     {
-      "name": "about",
-      "type": "text",
-      "description": "Information about a user."
+      "name": "campaign",
+      "description": "Foreign key referencing CAMPAIGN",
+      "type": "integer"
     },
     {
-      "name": "interests",
-      "type": "text",
-      "description": "User’s interests. Comma separated list of tags."
+      "name": "android_media_url",
+      "description": "Android media URL",
+      "type": "text"
     },
     {
-      "name": "avatar_url",
-      "type": "text",
-      "description": "URL of an avatar user uploaded. Check some of them out ;)"
+      "name": "format",
+      "description": "Format of the push message",
+      "type": "text"
     },
     {
-      "name": "postal_code",
-      "type": "text",
-      "description": "A postal code of a user for books delivery."
+      "name": "geofence_name",
+      "description": "Geofence name associated with the push message",
+      "type": "text"
+    },
+    {
+      "name": "ios_media_url",
+      "description": "iOS media URL",
+      "type": "text"
+    },
+    {
+      "name": "media_alt",
+      "description": "Media alt text",
+      "type": "text"
+    },
+    {
+      "name": "message_content",
+      "description": "Content of the push message",
+      "type": "text"
+    },
+    {
+      "name": "message_name",
+      "description": "Name of the push message",
+      "type": "text"
+    },
+    {
+      "name": "page_name",
+      "description": "Page name associated with the push message",
+      "type": "text"
+    },
+    {
+      "name": "template",
+      "description": "Template used for the push message",
+      "type": "text"
     }
   ]
 }

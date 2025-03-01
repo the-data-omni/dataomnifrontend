@@ -1,37 +1,57 @@
 {
-  "name": "purchases",
-  "description": "This table contains all purchase transactions.",
+  "name": "CAMPAIGN_ASSET",
+  "description": "Table containing information about campaign assets.",
   "columns": [
     {
       "name": "id",
-      "description": "Unique identifier of purchase.",
-      "type": "integer",
-      "key": true
-    },
-    {
-      "name": "user_id",
-      "description": "id of a user who made the purchase.",
+      "description": "Primary key",
+      "key": true,
       "type": "integer"
     },
     {
-      "name": "product_id",
-      "description": "id of a product inside products table.",
+      "name": "campaign_id",
+      "description": "Foreign key referencing CAMPAIGN",
       "type": "integer"
     },
     {
-      "name": "amount",
-      "description": "How much money user paid. The number might vary since users could apply discounts. Amount is always in US dollars.",
-      "type": "float"
+      "name": "email_asset_id",
+      "description": "Foreign key referencing EMAIL asset ID",
+      "type": "integer"
     },
     {
-      "name": "refunded",
-      "description": "Status of a purchase, we receive money on the bank account only if purchase wasn’t refunded.",
-      "type": "boolean"
+      "name": "email_id",
+      "description": "Foreign key referencing EMAIL",
+      "type": "integer"
     },
     {
-      "name": "created_at",
-      "description": "When purchase was made.",
+      "name": "list_id",
+      "description": "Foreign key referencing LIST",
+      "type": "integer"
+    },
+    {
+      "name": "triggered_send_id",
+      "description": "Foreign key referencing TRIGGERED_SEND",
+      "type": "integer"
+    },
+    {
+      "name": "created_date",
+      "description": "Date when the campaign asset was created",
       "type": "datetime"
+    },
+    {
+      "name": "item_id",
+      "description": "Item ID associated with the campaign asset",
+      "type": "integer"
+    },
+    {
+      "name": "object_id",
+      "description": "Object ID associated with the campaign asset",
+      "type": "integer"
+    },
+    {
+      "name": "type",
+      "description": "Type of the campaign asset",
+      "type": "text"
     }
   ]
 }

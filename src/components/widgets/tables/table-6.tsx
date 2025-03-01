@@ -19,17 +19,19 @@ import {
   Switch,
   Dialog,
   DialogContent,
-  CircularProgress
+  CircularProgress,
+  TablePagination,
 } from "@mui/material";
-import TablePagination from "@mui/material/TablePagination";
 import { MagnifyingGlass, List as ListIcon } from "@phosphor-icons/react";
 
 import { DataTable } from "@/components/core/data-table";
 import type { ColumnDef } from "@/components/core/data-table";
 
-/* ---------------------------------------
-   1) Data interfaces
-----------------------------------------*/
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** API shape for scraping */
 interface ApiTableItem {
   table_name: string;
   source_name: string;
@@ -39,6 +41,8 @@ interface ApiTableItem {
     description: string;
   }>;
 }
+
+/** Flattened row shape */
 interface FlattenedRow {
   tableName: string;
   sourceName: string;
@@ -47,9 +51,19 @@ interface FlattenedRow {
   columnDesc: string;
 }
 
-/* ---------------------------------------
-   2) Column definitions & toggles
-----------------------------------------*/
+/** Helper to flatten the API response */
+function flattenData(apiResponse: ApiTableItem[]): FlattenedRow[] {
+  return apiResponse.flatMap((tableObj) =>
+    tableObj.columns.map((col) => ({
+      tableName: tableObj.table_name,
+      sourceName: tableObj.source_name,
+      link: tableObj.link,
+      columnName: col.column_name,
+      columnDesc: col.description,
+    }))
+  );
+}
+
 const ALL_COLUMNS = ["Table Name", "Source Name", "Column Name", "Description"];
 const INITIAL_VISIBLE_COLUMNS = [...ALL_COLUMNS];
 
@@ -58,9 +72,10 @@ const SCRAPING_STEPS = [
   "Navigating to page...",
   "Collecting table data...",
   "Processing columns...",
-  "Collecting and Formatting Data..."
+  "Collecting and Formatting Data...",
 ];
 
+/** Column definitions for the DataTable */
 const columnDefs: ColumnDef<FlattenedRow>[] = [
   {
     name: "Table Name",
@@ -93,30 +108,28 @@ const columnDefs: ColumnDef<FlattenedRow>[] = [
   },
 ];
 
-/* ---------------------------------------
-   3) Flatten the API response
-----------------------------------------*/
-function flattenData(apiResponse: ApiTableItem[]): FlattenedRow[] {
-  return apiResponse.flatMap((tableObj) =>
-    tableObj.columns.map((col) => ({
-      tableName: tableObj.table_name,
-      sourceName: tableObj.source_name,
-      link: tableObj.link,
-      columnName: col.column_name,
-      columnDesc: col.description,
-    }))
-  );
-}
-
 export function Table6() {
-  /* --------------------------------
-     A) States
-  ----------------------------------*/
+  // 1) Local "data" for display in our table
   const [data, setData] = useState<FlattenedRow[]>([]);
-  const [loading, setLoading] = useState(false);   // triggers steps & blur
+
+  // 2) On mount, load from localStorage (if any)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("scrapedData");
+      if (stored) {
+        const parsed: FlattenedRow[] = JSON.parse(stored);
+        setData(parsed);
+      }
+    } catch (err) {
+      console.error("Error reading from localStorage:", err);
+    }
+  }, []);
+
+  // States for scraping
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [docUrl, setDocUrl] = useState("");
-  const [screenshot, setScreenshot] = useState(""); // For modal background
+  const [screenshot, setScreenshot] = useState("");
 
   // Steps modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -137,7 +150,7 @@ export function Table6() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   /* --------------------------------
-     B) Show steps if loading
+     A) Show steps if loading
   ----------------------------------*/
   useEffect(() => {
     let intervalId: any;
@@ -145,7 +158,6 @@ export function Table6() {
       setModalOpen(true);
       setStepIndex(0);
 
-      // cycle steps
       intervalId = setInterval(() => {
         setStepIndex((prev) => (prev < SCRAPING_STEPS.length - 1 ? prev + 1 : prev));
       }, 1500);
@@ -159,17 +171,18 @@ export function Table6() {
   }, [loading]);
 
   /* --------------------------------
-     C) handleScrape (two-step)
+     B) handleScrape
   ----------------------------------*/
   async function handleScrape() {
     setError("");
-    setData([]);
     setScreenshot("");
     setPage(0);
 
     try {
-      // 1) Get screenshot
-      //   route: POST /scrape_screenshot
+      // Clear old data from the table
+      setData([]);
+
+      // 1) screenshot
       const ssResp = await fetch("http://127.0.0.1:8080/scrape_screenshot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,12 +195,11 @@ export function Table6() {
       const ssJson = await ssResp.json();
       setScreenshot(ssJson.screenshot || "");
 
-      // 2) Now show steps
+      // 2) show steps
       setLoading(true);
 
-      // 3) Get data
-      //   route: POST /scrape_data
-      const dataResp = await fetch("http://127.0.0.1:8080/scrape", {
+      // 3) get data
+      const dataResp = await fetch("http://127.0.0.1:8080/crawl", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: docUrl }),
@@ -199,7 +211,6 @@ export function Table6() {
       const raw: ApiTableItem[] = await dataResp.json();
       const flattened = flattenData(raw);
       setData(flattened);
-
     } catch (err: any) {
       setError(err.message || "Network error");
     } finally {
@@ -208,12 +219,59 @@ export function Table6() {
   }
 
   /* --------------------------------
-     D) handle column toggles
+     C) handleSaveScrapedData (append, case-insensitive)
   ----------------------------------*/
-  function openMenu(e: React.MouseEvent<HTMLButtonElement>) {
+  function handleSaveScrapedData() {
+    if (!data.length) {
+      alert("No scraped data to save.");
+      return;
+    }
+    try {
+      // 1) Load existing data from localStorage (if any)
+      let existing: FlattenedRow[] = [];
+      const stored = localStorage.getItem("scrapedData");
+      if (stored) {
+        existing = JSON.parse(stored);
+      }
+
+      // 2) Merge the new data by appending only non-duplicate rows
+      //    We'll identify duplicates by (tableName, columnName) case-insensitive
+      const merged = [...existing];
+      for (const row of data) {
+        const rowTableLower = row.tableName.toLowerCase();
+        const rowColLower = row.columnName.toLowerCase();
+
+        const alreadyInList = merged.find((r) => {
+          return (
+            r.tableName.toLowerCase() === rowTableLower &&
+            r.columnName.toLowerCase() === rowColLower
+          );
+        });
+        if (!alreadyInList) {
+          merged.push(row);
+        }
+      }
+
+      // 3) Store the merged array back into localStorage
+      localStorage.setItem("scrapedData", JSON.stringify(merged));
+
+      // 4) Update our local state so the table shows the combined data
+      setData(merged);
+
+      alert("Scraped data appended to localStorage (case-insensitive)!");
+    } catch (err) {
+      console.error("Error saving to localStorage:", err);
+      alert("Error saving to localStorage. See console for details.");
+    }
+  }
+
+  /* --------------------------------
+     D) Column toggles & filters
+  ----------------------------------*/
+  function openColumnsMenu(e: React.MouseEvent<HTMLButtonElement>) {
     setAnchorEl(e.currentTarget);
   }
-  function closeMenu() {
+  function closeColumnsMenu() {
     setAnchorEl(null);
   }
   function toggleColumn(colName: string) {
@@ -222,9 +280,6 @@ export function Table6() {
     );
   }
 
-  /* --------------------------------
-     E) handle filters & pagination
-  ----------------------------------*/
   function handleChangePage(_e: any, newPage: number) {
     setPage(newPage);
   }
@@ -248,7 +303,9 @@ export function Table6() {
       if (missingDescOnly && row.columnDesc) return false;
 
       if (searchQuery) {
-        const text = (row.tableName + row.sourceName + row.columnName + row.columnDesc).toLowerCase();
+        const text = (
+          row.tableName + row.sourceName + row.columnName + row.columnDesc
+        ).toLowerCase();
         if (!text.includes(searchQuery.toLowerCase())) {
           return false;
         }
@@ -266,15 +323,12 @@ export function Table6() {
   }, [visibleColumns]);
 
   /* --------------------------------
-     F) Render
+     E) Render
   ----------------------------------*/
   return (
     <Box sx={{ bgcolor: "var(--mui-palette-background-level1)", p: 3 }}>
       <Card>
-        {/* 
-          1) The bigger modal for steps 
-          includes screenshot as background 
-        */}
+        {/* Steps overlay */}
         <Dialog
           open={modalOpen}
           PaperProps={{
@@ -286,7 +340,9 @@ export function Table6() {
               alignItems: "center",
               justifyContent: "center",
               position: "relative",
-              backgroundImage: `url(${screenshot || "https://via.placeholder.com/600x400?text=Page+Screenshot"})`,
+              backgroundImage: `url(${
+                screenshot || "https://via.placeholder.com/600x400?text=Page+Screenshot"
+              })`,
               backgroundSize: "cover",
               backgroundPosition: "center",
               "&::before": {
@@ -298,9 +354,7 @@ export function Table6() {
               overflow: "hidden",
             },
           }}
-          BackdropProps={{
-            sx: { backdropFilter: "blur(3px)" },
-          }}
+          BackdropProps={{ sx: { backdropFilter: "blur(3px)" } }}
         >
           <DialogContent
             sx={{
@@ -319,15 +373,17 @@ export function Table6() {
           </DialogContent>
         </Dialog>
 
-        {/* 
-          2) docUrl input + "Scrape" button
-        */}
-        <Stack direction="row" spacing={2} sx={{ p: 3, alignItems: "center" }}>
+        {/* Controls */}
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{ p: 3, alignItems: "center", flexWrap: "wrap" }}
+        >
           <OutlinedInput
             value={docUrl}
             onChange={(e) => setDocUrl(e.target.value)}
             placeholder="Enter or paste docs URL"
-            sx={{ flex: 1 }}
+            sx={{ minWidth: 280, flex: 1 }}
             startAdornment={
               <InputAdornment position="start">
                 <MagnifyingGlass />
@@ -337,15 +393,21 @@ export function Table6() {
           <Button variant="contained" onClick={handleScrape} disabled={loading}>
             {loading ? "Scraping..." : "Scrape"}
           </Button>
+
+          {/* Button to append to localStorage (case-insensitive) */}
+          <Button variant="contained" color="secondary" onClick={handleSaveScrapedData}>
+            Append to Local Storage
+          </Button>
         </Stack>
 
         <Divider />
 
-        {/* 
-          3) Filters row 
-        */}
-        <Stack direction="row" spacing={2} sx={{ p: 3, flexWrap: "wrap", alignItems: "center" }}>
-          {/* Search */}
+        {/* Filters */}
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{ p: 3, flexWrap: "wrap", alignItems: "center" }}
+        >
           <OutlinedInput
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -357,8 +419,6 @@ export function Table6() {
             }
             sx={{ width: 240 }}
           />
-
-          {/* Table Filter */}
           <Select
             value={tableFilter}
             onChange={(e) => setTableFilter(e.target.value)}
@@ -372,8 +432,6 @@ export function Table6() {
               </MenuItem>
             ))}
           </Select>
-
-          {/* Source Filter */}
           <Select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value)}
@@ -387,7 +445,6 @@ export function Table6() {
               </MenuItem>
             ))}
           </Select>
-
           <FormControlLabel
             control={
               <Switch
@@ -398,44 +455,37 @@ export function Table6() {
             label="Missing Description"
           />
 
-          {/* Column toggles */}
-          <Button variant="outlined" startIcon={<ListIcon />} onClick={(e) => setAnchorEl(e.currentTarget)}>
+          <Button variant="outlined" startIcon={<ListIcon />} onClick={openColumnsMenu}>
             Columns
           </Button>
+          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={closeColumnsMenu}>
+            <FormGroup sx={{ p: 2 }}>
+              {ALL_COLUMNS.map((colName) => (
+                <FormControlLabel
+                  key={colName}
+                  control={
+                    <Checkbox
+                      checked={visibleColumns.includes(colName)}
+                      onChange={() => toggleColumn(colName)}
+                    />
+                  }
+                  label={colName}
+                />
+              ))}
+            </FormGroup>
+          </Menu>
         </Stack>
-
-        {/* Column toggles menu */}
-        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-          <FormGroup sx={{ p: 2 }}>
-            {ALL_COLUMNS.map((colName) => (
-              <FormControlLabel
-                key={colName}
-                control={
-                  <Checkbox
-                    checked={visibleColumns.includes(colName)}
-                    onChange={() => toggleColumn(colName)}
-                  />
-                }
-                label={colName}
-              />
-            ))}
-          </FormGroup>
-        </Menu>
 
         <Divider />
 
-        {/* 
-          4) Error 
-        */}
+        {/* Error (scrape error) */}
         {error && (
           <Typography color="error" sx={{ p: 2 }}>
             {error}
           </Typography>
         )}
 
-        {/* 
-          5) Data Table (blurred while loading)
-        */}
+        {/* Data table */}
         <Box
           sx={{
             overflowX: "auto",
@@ -448,9 +498,7 @@ export function Table6() {
 
         <Divider />
 
-        {/* 
-          6) Pagination
-        */}
+        {/* Pagination */}
         <TablePagination
           component="div"
           count={totalCount}
@@ -463,4 +511,5 @@ export function Table6() {
       </Card>
     </Box>
   );
+
 }

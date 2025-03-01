@@ -1,88 +1,212 @@
 [
   {
-    "source": "users",
-    "sourceKey": "id",
-    "target": "purchases",
-    "targetKey": "user_id",
-    "relation": "hasMany"
+    "source": "ACTIVITY",
+    "sourceKey": "journey_id",
+    "target": "JOURNEY",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "users",
-    "sourceKey": "id",
-    "target": "books_users",
-    "targetKey": "user_id",
-    "relation": "hasMany"
+    "source": "ACTIVITY",
+    "sourceKey": "triggered_send_id",
+    "target": "TRIGGERED_SEND",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "products",
-    "sourceKey": "id",
-    "target": "purchases",
-    "targetKey": "product_id",
-    "relation": "hasMany"
+    "source": "TRIGGERED_SEND",
+    "sourceKey": "email_id",
+    "target": "EMAIL",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "books",
-    "sourceKey": "id",
-    "target": "books_users",
-    "targetKey": "book_id",
-    "relation": "hasMany"
+    "source": "TRIGGERED_SEND",
+    "sourceKey": "list_id",
+    "target": "LIST",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "users",
-    "sourceKey": "id",
-    "target": "profiles",
-    "targetKey": "user_id",
-    "relation": "hasOne"
+    "source": "LIST_SUBSCRIBER",
+    "sourceKey": "list_id",
+    "target": "LIST",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "users",
-    "sourceKey": "id",
-    "target": "accounts",
-    "targetKey": "user_id",
-    "relation": "hasOne"
+    "source": "LIST_SUBSCRIBER",
+    "sourceKey": "subscriber_key",
+    "target": "SUBSCRIBER",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "users",
-    "sourceKey": "id",
-    "target": "devices",
-    "targetKey": "user_id",
-    "relation": "hasMany"
+    "source": "EVENT",
+    "sourceKey": "opt_in_subscriber_id",
+    "target": "SUBSCRIBER",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "users",
-    "sourceKey": "id",
-    "target": "adjust.callbacks",
-    "targetKey": "user_id",
-    "relation": "hasMany"
+    "source": "EVENT",
+    "sourceKey": "send_id",
+    "target": "SEND",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "users",
-    "sourceKey": "visitor_id",
-    "target": "web_analytics.pageviews",
-    "targetKey": "visitor_id",
-    "relation": "hasMany"
+    "source": "EVENT",
+    "sourceKey": "subscriber_key",
+    "target": "SUBSCRIBER",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "web_analytics.pageviews",
-    "sourceKey": "pageview_id",
-    "target": "web_analytics.events",
-    "targetKey": "pageview_id",
-    "relation": "hasMany"
+    "source": "EVENT",
+    "sourceKey": "triggered_send_id",
+    "target": "TRIGGERED_SEND",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "users",
-    "sourceKey": "id",
-    "target": "mobile_analytics.events",
-    "targetKey": "user_id",
-    "relation": "hasMany"
+    "source": "EVENT",
+    "sourceKey": "unsubscribed_list",
+    "target": "LIST",
+    "targetKey": "id",
+    "relation": "belongsTo"
   },
   {
-    "source": "users",
-    "sourceKey": "id",
-    "target": "users",
-    "targetKey": "referrer_id",
-    "relation": "hasMany",
-    "sourcePosition": "left",
-    "targetPosition": "left"
+    "source": "PUSH_MESSAGE",
+    "sourceKey": "app_name",
+    "target": "PUSH_APPLICATION",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "PUSH_MESSAGE",
+    "sourceKey": "campaign",
+    "target": "CAMPAIGN",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "MOBILE_PUSH_DETAIL_EXTRACT",
+    "sourceKey": "message_id",
+    "target": "PUSH_MESSAGE",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "CAMPAIGN_ASSET",
+    "sourceKey": "campaign_id",
+    "target": "CAMPAIGN",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "CAMPAIGN_ASSET",
+    "sourceKey": "email_asset_id",
+    "target": "EMAIL",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "CAMPAIGN_ASSET",
+    "sourceKey": "email_id",
+    "target": "EMAIL",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "CAMPAIGN_ASSET",
+    "sourceKey": "list_id",
+    "target": "LIST",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "CAMPAIGN_ASSET",
+    "sourceKey": "triggered_send_id",
+    "target": "TRIGGERED_SEND",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "SEND",
+    "sourceKey": "email_id",
+    "target": "EMAIL",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "SMS_MESSAGE_TRACKING",
+    "sourceKey": "activity_id",
+    "target": "ACTIVITY",
+    "targetKey": "key",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "SMS_MESSAGE_TRACKING",
+    "sourceKey": "campaign_id",
+    "target": "CAMPAIGN",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "SMS_MESSAGE_TRACKING",
+    "sourceKey": "journey_definition_id",
+    "target": "JOURNEY",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "CHAT_TRACKING",
+    "sourceKey": "activity_id",
+    "target": "ACTIVITY",
+    "targetKey": "key",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "CHAT_TRACKING",
+    "sourceKey": "channel_id",
+    "target": "OTT_REGISTRATION",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "CHAT_TRACKING",
+    "sourceKey": "journey_definition_id",
+    "target": "JOURNEY",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "CHAT_POTENTIAL_UNSUBS",
+    "sourceKey": "channel_id",
+    "target": "OTT_REGISTRATION",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "CHAT_INBOUND_MESSAGE_LOG",
+    "sourceKey": "channel_id",
+    "target": "OTT_REGISTRATION",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "LINK_SEND",
+    "sourceKey": "link_id",
+    "target": "LINK",
+    "targetKey": "id",
+    "relation": "belongsTo"
+  },
+  {
+    "source": "LINK_SEND",
+    "sourceKey": "send_id",
+    "target": "SEND",
+    "targetKey": "id",
+    "relation": "belongsTo"
   }
 ]
