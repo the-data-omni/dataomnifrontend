@@ -82,6 +82,15 @@ const INITIAL_VISIBLE_COLUMNS = [
   "Field Description"
 ];
 
+// Additional Fivetran column names to detect
+const FIVETRAN_COLUMNS = [
+  "_fivetran_synced",
+  "_fivetran_id",
+  "_fivetran_start",
+  "_fivetran_active",
+  "_fivetran_end"
+];
+
 export function Table5() {
   // 1) Flattened fields + query drawer
   const { selectedSchemaName } = React.useContext(SchemaContext);
@@ -118,10 +127,18 @@ export function Table5() {
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
   // "Get Descriptions" dialog states
+  // NOTE: We'll use the same modal for scanning + merging descriptions,
+  //       but insert a step for detecting Fivetran/GA datasets.
   const [descProgress, setDescProgress] = React.useState(0); // 0=idle, 1=scan, 2=found, 3=adding, 4=done
   const [dialogOpen, setDialogOpen] = React.useState(false);
+
+  // The existing "found" counts from user code
   const [descFoundCount, setDescFoundCount] = React.useState(0);
   const [matchedTables, setMatchedTables] = React.useState<{ dataset: string; tableName: string }[]>([]);
+
+  // **New** states to store detected Fivetran + GA datasets
+  const [fivetranDatasets, setFivetranDatasets] = React.useState<string[]>([]);
+  const [gaDatasets, setGaDatasets] = React.useState<string[]>([]);
 
   // Column visibility
   const [visibleColumns, setVisibleColumns] = React.useState<string[]>(INITIAL_VISIBLE_COLUMNS);
@@ -436,7 +453,7 @@ export function Table5() {
         width: 60,
         formatter: (row) => {
           const fromClause = row.access_instructions?.from_clause || "";
-          const selectExpr = row.access_instructions?.select_expr || "";
+          const selectExpr = row.access_instructions?.select_expr || getFieldRef(row);
           return (
             <Checkbox
               size="small"
@@ -475,7 +492,7 @@ export function Table5() {
       {
         name: "Data Type",
         width: 120,
-        formatter: (row) => row.data_type
+        formatter: (row) => row.data_type || ""
       },
       {
         name: "Field Description",
@@ -639,15 +656,6 @@ export function Table5() {
   }, [allColumnDefs, visibleColumns]);
 
   // Filtering & pagination
-  const uniqueTables = React.useMemo(
-    () => Array.from(new Set(augmentedData.map((f) => f.table_name))),
-    [augmentedData]
-  );
-  const uniqueDatasets = React.useMemo(
-    () => Array.from(new Set(augmentedData.map((f) => f.table_schema))),
-    [augmentedData]
-  );
-
   const filteredRows = React.useMemo(() => {
     return augmentedData.filter((row) => {
       if (tableFilter && row.table_name !== tableFilter) return false;
@@ -675,14 +683,25 @@ export function Table5() {
     setCurrentPage(0);
   }
 
-  // "Get Descriptions" logic
+  // "Get Descriptions" logic (now includes detecting Fivetran & GA)
   async function handleGetDescriptions() {
     try {
       setDialogOpen(true);
       setDescProgress(1);
       await sleep(1000);
-  
-      // 1) Attempt to load localStorage data
+
+      // -------------------------------------
+      // Step 1: "Scanning schema..."
+      //  => Do nothing special besides wait.
+      // -------------------------------------
+
+      // -------------------------------------
+      // Step 2: Detect Fivetran & GA datasets
+      //         AND also fetch your localScraped + /my-schema
+      // -------------------------------------
+      setDescProgress(2);
+
+      // 2a) Attempt to load localStorage data
       let localScraped: {
         tableName: string;
         columnName: string;
@@ -696,60 +715,70 @@ export function Table5() {
       } catch (err) {
         console.error("Error parsing scrapedData from localStorage:", err);
       }
-  
-      // 2) Build a quick lookup from localScraped
-      //    Key = (tableName + "." + columnName) in lowercase => description
+
+      // 2b) Build a quick lookup from localScraped
       const localMap = new Map<string, string>();
       localScraped.forEach((item) => {
         const key =
           item.tableName.toLowerCase() + "." + item.columnName.toLowerCase();
         localMap.set(key, item.columnDesc);
       });
-  
-      setDescProgress(2);
-  
-      // 3) Fetch /my-schema.json
+
+      // 2c) Fetch /my-schema.json
       const res = await fetch("/my-schema.json");
       if (!res.ok) {
         throw new Error(`Failed to load schema file. Status ${res.status}`);
       }
       const schema = await res.json();
-  
       setDescFoundCount(schema.length);
-  
-      // 4) Prepare to identify matched tables (for your progress UI)
+
+      // 2d) Detect Fivetran or GA from augmentedData
+      const fivetranFound = new Set<string>();
+      const gaFound = new Set<string>();
+
+      augmentedData.forEach((row) => {
+        // If any known Fivetran column is present => that dataset is Fivetran
+        if (FIVETRAN_COLUMNS.includes(row.column_name.toLowerCase())) {
+          fivetranFound.add(row.table_schema);
+        }
+        // If the table name starts with "events_" => GA dataset
+        if (row.table_name.toLowerCase().startsWith("events_")) {
+          gaFound.add(row.table_schema);
+        }
+      });
+      setFivetranDatasets(Array.from(fivetranFound));
+      setGaDatasets(Array.from(gaFound));
+
+      // 2e) Identify matched tables for your progress UI
       const matched: { dataset: string; tableName: string }[] = [];
-  
-      // 5) Merge descriptions from localStorage + /my-schema.json
+
+      // We'll still follow your original logic for merging descriptions:
       augmentedData.forEach((row) => {
         if (!row.description) {
-          // Lowercase row's table & col
           const rowTableLower = row.table_name.toLowerCase();
           const rowColLower = row.column_name.toLowerCase();
-  
-          // First try localMap
+
+          // localMap first
           const localKey = rowTableLower + "." + rowColLower;
           const localDesc = localMap.get(localKey);
           if (localDesc) {
             matched.push({ dataset: row.table_schema, tableName: row.table_name });
-          } else {
-            // Then check /my-schema.json in a case-insensitive manner
-            // i.e. find the table with matching toLowerCase
-            const tbl = schema.find(
-              (t: any) => t.table_name.toLowerCase() === rowTableLower
+            return;
+          }
+
+          // Then fallback to /my-schema
+          const tbl = schema.find((t: any) => t.table_name.toLowerCase() === rowTableLower);
+          if (tbl && tbl.columns) {
+            const col = tbl.columns.find(
+              (c: any) => c.column_name.toLowerCase() === rowColLower
             );
-            if (tbl && tbl.columns) {
-              const col = tbl.columns.find(
-                (c: any) => c.column_name.toLowerCase() === rowColLower
-              );
-              if (col && col.description) {
-                matched.push({ dataset: row.table_schema, tableName: row.table_name });
-              }
+            if (col && col.description) {
+              matched.push({ dataset: row.table_schema, tableName: row.table_name });
             }
           }
         }
       });
-  
+
       // Deduplicate matched
       const uniqueMatched: { dataset: string; tableName: string }[] = [];
       const seen = new Set<string>();
@@ -761,27 +790,30 @@ export function Table5() {
         }
       }
       setMatchedTables(uniqueMatched);
-  
-      await sleep(2000);
+
+      await sleep(1000);
+
+      // -------------------------------------
+      // Step 3: "Adding descriptions..."
+      // -------------------------------------
       setDescProgress(3);
-  
-      // 6) Actually update augmentedData
+      await sleep(1200);
+
+      // Actually update augmentedData with merged descriptions
       const updated = augmentedData.map((row) => {
         if (!row.description) {
           const rowTableLower = row.table_name.toLowerCase();
           const rowColLower = row.column_name.toLowerCase();
-  
-          // First try localMap
+
+          // localMap first
           const localKey = rowTableLower + "." + rowColLower;
           const localDesc = localMap.get(localKey);
           if (localDesc) {
             return { ...row, description: localDesc };
           }
-  
-          // Then fallback to /my-schema.json
-          const tbl = schema.find(
-            (t: any) => t.table_name.toLowerCase() === rowTableLower
-          );
+
+          // Then fallback to /my-schema
+          const tbl = schema.find((t: any) => t.table_name.toLowerCase() === rowTableLower);
           if (tbl && tbl.columns) {
             const col = tbl.columns.find(
               (c: any) => c.column_name.toLowerCase() === rowColLower
@@ -794,8 +826,11 @@ export function Table5() {
         return row;
       });
       setAugmentedData(updated);
-  
-      await sleep(2000);
+
+      // -------------------------------------
+      // Step 4: "Done!"
+      // -------------------------------------
+      await sleep(1000);
       setDescProgress(4);
       await sleep(1200);
       setDescProgress(0);
@@ -806,7 +841,6 @@ export function Table5() {
       setDialogOpen(false);
     }
   }
-  
 
   function renderDialogContent() {
     switch (descProgress) {
@@ -819,14 +853,56 @@ export function Table5() {
             </Typography>
           </>
         );
+
       case 2:
+        // Show the newly found Fivetran & GA datasets, plus the existing "Found X dataset(s)..." text
         return (
           <>
             <CircularProgress />
             <Typography variant="h6" sx={{ mt: 2 }}>
               Found {descFoundCount} dataset(s) in my-schema...
             </Typography>
-            <Box sx={{ mt: 2, width: "100%", maxHeight: 200, overflowY: "auto" }}>
+
+            {/* Fivetran & GA results */}
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2">Fivetran Datasets Detected:</Typography>
+              {fivetranDatasets.length > 0 ? (
+                <List dense>
+                  {fivetranDatasets.map((ds) => (
+                    <ListItem key={ds}>
+                      <ListItemText primary={ds} />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  None
+                </Typography>
+              )}
+
+              <Typography variant="subtitle2" sx={{ mt: 2 }}>
+                Google Analytics Datasets Detected:
+              </Typography>
+              {gaDatasets.length > 0 ? (
+                <List dense>
+                  {gaDatasets.map((ds) => (
+                    <ListItem key={ds}>
+                      <ListItemText primary={ds} />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  None
+                </Typography>
+              )}
+            </Box>
+
+            {/* The matched tables for which we have new descriptions */}
+            <Box sx={{ mt: 2, maxHeight: 200, overflowY: "auto" }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Will add descriptions to:
+              </Typography>
               {matchedTables.length > 0 ? (
                 <List dense>
                   {matchedTables.map((m, idx) => (
@@ -843,6 +919,7 @@ export function Table5() {
             </Box>
           </>
         );
+
       case 3:
         return (
           <>
@@ -852,6 +929,7 @@ export function Table5() {
             </Typography>
           </>
         );
+
       case 4:
         return (
           <>
@@ -866,6 +944,7 @@ export function Table5() {
             )}
           </>
         );
+
       default:
         return null;
     }
@@ -958,6 +1037,7 @@ export function Table5() {
             }
             label="Missing Description"
           />
+
           <Button variant="outlined" startIcon={<ListIcon />} onClick={openMenu}>
             Columns
           </Button>
@@ -1054,7 +1134,7 @@ export function Table5() {
             {updatingBQ ? "Updating" : "Update BigQuery"}
           </Button>
 
-          {/* Get Descriptions Button */}
+          {/* "Get Descriptions" Button (now includes detection logic) */}
           <Button variant="contained" onClick={handleGetDescriptions}>
             Get Descriptions
           </Button>
