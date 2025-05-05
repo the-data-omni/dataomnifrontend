@@ -3,9 +3,6 @@
 import * as React from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Radio from "@mui/material/Radio";
-import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -15,102 +12,69 @@ import http from "isomorphic-git/http/web";
 import * as git from "isomorphic-git";
 import LightningFS from "@isomorphic-git/lightning-fs";
 
-// ----------------------------------
-// Types
-// ----------------------------------
 interface GitHubRepoConfig {
-  repoOption: "existing" | "create";
   ownerOrOrg: string;
   repoName: string;
   branchName: string;
-  mainBranch: boolean;
 }
 
 export function Inputs2(): React.JSX.Element {
-  // ----------------------------------
-  // 1) Form State
-  // ----------------------------------
+  // ---------------------------------------------------
+  // 1) Repo Config State
+  // ---------------------------------------------------
   const [repoConfig, setRepoConfig] = React.useState<GitHubRepoConfig>({
-    repoOption: "existing",
     ownerOrOrg: "",
     repoName: "",
-    branchName: "main",
-    mainBranch: true,
+    branchName: "main", // default to "main"
   });
 
-  function handleRepoOptionChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setRepoConfig((prev) => ({
-      ...prev,
-      repoOption: e.target.value as "existing" | "create",
-    }));
-  }
   function handleInputChange(field: keyof GitHubRepoConfig) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
       setRepoConfig((prev) => ({ ...prev, [field]: e.target.value }));
     };
   }
-  function handleCheckboxChange(field: keyof GitHubRepoConfig) {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      setRepoConfig((prev) => ({ ...prev, [field]: e.target.checked }));
-    };
-  }
 
-  // ----------------------------------
+  // ---------------------------------------------------
   // 2) In-Browser File System & Repo
-  // ----------------------------------
-  const [fsBase] = React.useState(() => new LightningFS("myfs", ));
-  // pfs is the async/await interface
+  // ---------------------------------------------------
+  const [fsBase] = React.useState(() => new LightningFS("myfs"));
   const pfs = fsBase.promises;
-
-  const [dir] = React.useState("/repo"); // local folder for the repo
+  const [dir] = React.useState("/repo"); // folder for the repo in the browser FS
   const [initialized, setInitialized] = React.useState(false);
 
-  // On mount or when the user changes "create" vs. "existing,"
-  // check if there's already a .git folder.
   React.useEffect(() => {
     (async () => {
       try {
-        await pfs.stat(dir + "/.git");
-        // If stat succeeds, the repo is already initialized
+        await pfs.stat(`${dir}/.git`);
         console.log("Repo found; already initialized.");
         setInitialized(true);
       } catch (err) {
-        console.log("No .git folder found.");
-        if (repoConfig.repoOption === "create") {
-          // If user wants a new repo, create /repo & init
-          try {
-            await pfs.mkdir(dir);
-          } catch {
-            // folder might exist already
-          }
-          await git.init({ fs: fsBase, dir });
-          setInitialized(true);
-          console.log("Initialized new ephemeral repo in the browser FS.");
-        } else {
-          // "existing" => We'll wait for user to clone manually (see handleCloneRepo below)
-          console.log("Will clone if user triggers it.");
-        }
+        console.log("No .git folder found; clone when ready.");
       }
     })();
-  }, [pfs, fsBase, dir, repoConfig.repoOption]);
+  }, [pfs, dir]);
 
-  // 2a) Function to clone if user selects "existing"
+  // ---------------------------------------------------
+  // 2a) Clone an existing GitHub repo
+  // ---------------------------------------------------
   async function handleCloneRepo() {
     if (initialized) {
-      return alert("Repo is already initialized.");
+      alert("Repo already initialized.");
+      return;
     }
 
-    // Prompt for a GitHub token
     const token = prompt("Enter your GitHub personal access token:");
     if (!token) {
-      return alert("No token provided; cannot clone.");
+      alert("No token provided; cannot clone.");
+      return;
     }
 
     const remoteUrl = `https://${token}:x-oauth-basic@github.com/${repoConfig.ownerOrOrg}/${repoConfig.repoName}.git`;
 
     try {
-      // Ensure /repo exists
+      // Make sure /repo folder exists
       await pfs.mkdir(dir).catch(() => {});
+      // Clone the specified branch
       await git.clone({
         fs: fsBase,
         http,
@@ -119,7 +83,7 @@ export function Inputs2(): React.JSX.Element {
         ref: repoConfig.branchName,
         singleBranch: true,
         depth: 1,
-        onAuth: () => ({ username: "token", password: token }),
+        onAuth: () => ({ username: "anyuser", password: token }),
       });
       setInitialized(true);
       alert("Cloned repo successfully into the browser FS!");
@@ -129,27 +93,27 @@ export function Inputs2(): React.JSX.Element {
     }
   }
 
-  // ----------------------------------
-  // 3) Committing Local Changes
-  // ----------------------------------
-  const [fileContent, setFileContent] = React.useState("// My ephemeral schema\n");
+  // ---------------------------------------------------
+  // 3) Committing changes locally
+  // ---------------------------------------------------
+  const [fileContent, setFileContent] = React.useState("// My schema\n");
 
   async function handleLocalCommit() {
     if (!initialized) {
-      return alert("Repo not initialized yet!");
+      alert("Repo not initialized yet!");
+      return;
     }
     try {
       const filename = "schema.json";
-
-      // Write the file using pfs
+      // Write the file into the in-browser FS
       await pfs.writeFile(`${dir}/${filename}`, fileContent, "utf8");
 
-      // Stage & Commit (pass fsBase to isomorphic-git)
+      // Stage & commit
       await git.add({ fs: fsBase, dir, filepath: filename });
       const sha = await git.commit({
         fs: fsBase,
         dir,
-        message: "Local ephemeral commit",
+        message: "Local commit",
         author: { name: "In-Browser User", email: "inbrowser@example.com" },
       });
       alert(`Committed! SHA: ${sha}`);
@@ -159,39 +123,53 @@ export function Inputs2(): React.JSX.Element {
     }
   }
 
-  // ----------------------------------
-  // 4) Pushing to GitHub
-  // ----------------------------------
+  // ---------------------------------------------------
+  // 4) Pushing to GitHub (create branch if missing)
+  // ---------------------------------------------------
   async function handlePushToGithub() {
     if (!initialized) {
-      return alert("Repo not initialized yet!");
+      alert("Repo not initialized yet!");
+      return;
     }
+
     const token = prompt("Enter your GitHub personal access token for push:");
     if (!token) {
-      return alert("No token, cannot push.");
+      alert("No token, cannot push.");
+      return;
     }
 
     const remoteUrl = `https://${token}:x-oauth-basic@github.com/${repoConfig.ownerOrOrg}/${repoConfig.repoName}.git`;
 
     try {
       // Add remote if needed
-      await git.addRemote({
-        fs: fsBase,
-        dir,
-        remote: "origin",
-        url: remoteUrl,
-      }).catch(() => {
-        console.log("Remote 'origin' may already exist.");
-      });
+      await git
+        .addRemote({ fs: fsBase, dir, remote: "origin", url: remoteUrl })
+        .catch(() => {
+          console.log("Remote 'origin' may already exist.");
+        });
 
-      // Push
+      // If the specified branch doesn't exist locally, create it
+      try {
+        await git.resolveRef({ fs: fsBase, dir, ref: repoConfig.branchName });
+        console.log(`Local branch "${repoConfig.branchName}" exists.`);
+      } catch (error) {
+        if (error instanceof git.Errors.NotFoundError) {
+          console.log(`Branch "${repoConfig.branchName}" not found locally. Creating it...`);
+          await git.branch({ fs: fsBase, dir, ref: repoConfig.branchName });
+          await git.checkout({ fs: fsBase, dir, ref: repoConfig.branchName });
+        } else {
+          throw error;
+        }
+      }
+
+      // Now push that branch
       await git.push({
         fs: fsBase,
         http,
         dir,
         remote: "origin",
         ref: repoConfig.branchName,
-        onAuth: () => ({ username: "token", password: token }),
+        onAuth: () => ({ username: "anyuser", password: token }),
       });
       alert("Pushed to GitHub successfully!");
     } catch (err) {
@@ -200,43 +178,20 @@ export function Inputs2(): React.JSX.Element {
     }
   }
 
-  // ----------------------------------
-  // 5) Misc UI Handlers
-  // ----------------------------------
-  function handleConnect() {
-    console.log("Repo config:", repoConfig);
-    alert(
-      repoConfig.repoOption === "create"
-        ? "Creating new ephemeral repo automatically (if not found)."
-        : "We'll clone from GitHub if you click 'Clone Repo' below."
-    );
-  }
-
-  // ----------------------------------
+  // ---------------------------------------------------
   // Render
-  // ----------------------------------
+  // ---------------------------------------------------
   return (
     <Box sx={{ p: 3, maxWidth: 800, mx: "auto" }}>
       <Stack spacing={2}>
-        <Typography variant="h5">Connect to a GitHub Repository</Typography>
+        <Typography variant="h5">Connect to an Existing GitHub Repository</Typography>
         <Typography variant="body2" color="text.secondary">
-          Choose whether you want to create a brand-new local repo or clone an existing one from GitHub.
+          This component will clone an existing GitHub repo into the browser’s filesystem. 
+          Then you can commit changes locally, and if your specified branch 
+          doesn’t exist, it will be created before pushing.
         </Typography>
 
         <Divider />
-
-        <RadioGroup value={repoConfig.repoOption} onChange={handleRepoOptionChange}>
-          <FormControlLabel
-            value="existing"
-            control={<Radio />}
-            label="Connect to Existing Repo"
-          />
-          <FormControlLabel
-            value="create"
-            control={<Radio />}
-            label="Create a New Repo (ephemeral)"
-          />
-        </RadioGroup>
 
         <TextField
           label="GitHub Owner or Org"
@@ -256,25 +211,11 @@ export function Inputs2(): React.JSX.Element {
           label="Branch Name"
           value={repoConfig.branchName}
           onChange={handleInputChange("branchName")}
-          helperText='e.g. "main" or "master"'
+          helperText='e.g. "main" or "master" or "feature/xyz"'
           fullWidth
         />
 
-        <FormControlLabel
-          control={
-            <Radio
-              checked={repoConfig.mainBranch}
-              onChange={handleCheckboxChange("mainBranch")}
-            />
-          }
-          label="Set this as the main branch?"
-        />
-
-        <Button variant="outlined" onClick={handleConnect}>
-          Configure
-        </Button>
-
-        {repoConfig.repoOption === "existing" && !initialized && (
+        {!initialized && (
           <Button variant="contained" onClick={handleCloneRepo}>
             Clone Repo
           </Button>
@@ -282,9 +223,9 @@ export function Inputs2(): React.JSX.Element {
 
         <Divider sx={{ my: 2 }} />
 
-        <Typography variant="h6">Ephemeral In-Browser Repo</Typography>
+        <Typography variant="h6">Local File Edits</Typography>
         <Typography variant="body2" color="text.secondary">
-          Edit your <code>schema.json</code> content here. Then commit locally or push to GitHub.
+          Edit your <code>schema.json</code> content here, then commit and push.
         </Typography>
 
         <TextField

@@ -33,6 +33,7 @@ export interface ThreadViewProps {
 }
 
 export function ThreadView({ threadId }: ThreadViewProps): React.JSX.Element | null {
+	console.log("rendered threadview")
 	const { createMessage, markAsRead } = React.useContext(ChatContext);
 
 	const thread = useThread(threadId);

@@ -13,6 +13,7 @@ const contacts = [
 		isActive: false,
 		lastActivity: dayjs().subtract(1, "hour").toDate(),
 	},
+	
 	{
 		id: "USR-003",
 		name: "Carson Darrin",
@@ -78,6 +79,15 @@ const threads = [
 		unreadCount: 0,
 	},
 	{
+		id: "TRD-LLM",
+		type: "direct",
+		participants: [
+		  { id: "USR-000", name: "Sofia Rivers", avatar: "/assets/avatar.png" },
+		  { id: "LLM-123", name: "OpenAI LLM", avatar: "/assets/avatar-robot.png" },
+		],
+		unreadCount: 0,
+	  },
+	{
 		id: "TRD-003",
 		type: "direct",
 		participants: [
@@ -115,6 +125,7 @@ const messages = [
 		content: "Hi, how are you?",
 		author: { id: "USR-000", name: "Sofia Rivers", avatar: "/assets/avatar.png" },
 		createdAt: dayjs().subtract(10, "minute").toDate(),
+		profileSynth: undefined
 	},
 	{
 		id: "MSG-010",
@@ -123,6 +134,7 @@ const messages = [
 		content: "Are you available for a call?",
 		author: { id: "USR-005", name: "Fran Perez", avatar: "/assets/avatar-5.png" },
 		createdAt: dayjs().subtract(5, "minute").subtract(1, "hour").toDate(),
+		profileSynth: undefined
 	},
 	{
 		id: "MSG-009",
@@ -131,6 +143,7 @@ const messages = [
 		content: "Hello everyone 😀",
 		author: { id: "USR-001", name: "Miron Vitold", avatar: "/assets/avatar-1.png" },
 		createdAt: dayjs().subtract(56, "minute").subtract(2, "hour").toDate(),
+		profileSynth: undefined
 	},
 	{
 		id: "MSG-008",
@@ -139,6 +152,7 @@ const messages = [
 		content: "Hi!",
 		author: { id: "USR-000", name: "Sofia Rivers", avatar: "/assets/avatar.png" },
 		createdAt: dayjs().subtract(51, "minute").subtract(3, "hour").toDate(),
+		profileSynth: undefined
 	},
 	{
 		id: "MSG-007",
@@ -147,6 +161,7 @@ const messages = [
 		content: "Hey, would you like to collaborate?",
 		author: { id: "USR-007", name: "Nasimiyu Danai", avatar: "/assets/avatar-7.png" },
 		createdAt: dayjs().subtract(46, "minute").subtract(5, "hour").toDate(),
+		profileSynth: undefined
 	},
 	{
 		id: "MSG-006",
@@ -155,6 +170,7 @@ const messages = [
 		content: "/assets/image-abstract-1.png",
 		author: { id: "USR-010", name: "Alcides Antonio", avatar: "/assets/avatar-10.png" },
 		createdAt: dayjs().subtract(1, "hour").subtract(2, "day").toDate(),
+		profileSynth: undefined
 	},
 	{
 		id: "MSG-005",
@@ -163,6 +179,7 @@ const messages = [
 		content: "Ok, I will think about it. Thanks!",
 		author: { id: "USR-010", name: "Alcides Antonio", avatar: "/assets/avatar-10.png" },
 		createdAt: dayjs().subtract(2, "hour").subtract(2, "day").toDate(),
+		profileSynth: undefined
 	},
 	{
 		id: "MSG-004",
@@ -171,6 +188,7 @@ const messages = [
 		content: "I'm sorry, I can't go lower than $45.",
 		author: { id: "USR-000", name: "Sofia Rivers", avatar: "/assets/avatar.png" },
 		createdAt: dayjs().subtract(3, "hour").subtract(3, "day").toDate(),
+		profileSynth: undefined
 	},
 	{
 		id: "MSG-003",
@@ -179,6 +197,7 @@ const messages = [
 		content: "Can't you make it $40? I'm on a tight budget.",
 		author: { id: "USR-010", name: "Alcides Antonio", avatar: "/assets/avatar-10.png" },
 		createdAt: dayjs().subtract(5, "hour").subtract(3, "day").toDate(),
+		profileSynth: undefined
 	},
 	{
 		id: "MSG-002",
@@ -187,6 +206,7 @@ const messages = [
 		content: "Sure, it is $50 per hour.",
 		author: { id: "USR-000", name: "Sofia Rivers", avatar: "/assets/avatar.png" },
 		createdAt: dayjs().subtract(2, "hour").subtract(4, "day").toDate(),
+		profileSynth: undefined
 	},
 	{
 		id: "MSG-001",
@@ -195,6 +215,7 @@ const messages = [
 		content: "I'm interested in your services, can you tell me more about your hourly rate?",
 		author: { id: "USR-010", name: "Alcides Antonio", avatar: "/assets/avatar-10.png" },
 		createdAt: dayjs().subtract(5, "hour").subtract(4, "day").toDate(),
+		profileSynth: undefined
 	},
 ] satisfies Message[];
 

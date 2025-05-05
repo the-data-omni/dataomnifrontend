@@ -1,224 +1,332 @@
+// "use client";
+
+// import * as React from "react";
+// import type { Contact, Message, MessageType, Participant, Thread } from "./types";
+
+// function noop(): void {}
+
+// export type CreateThreadParams =
+//   | { type: "direct"; recipientId: string }
+//   | { type: "group"; recipientIds: string[] };
+
+// export interface CreateMessageParams {
+//   profileSynth?: any;
+//   threadId: string;
+//   type: MessageType; // "text" | "image" | "llm"
+//   content: string;
+//   chartData?:any[]
+//   sql?: string; 
+//   data?:{};     // Only used for LLM messages
+//   profile?: any;
+// }
+
+// export interface ChatContextValue {
+//   contacts: Contact[];
+//   threads: Thread[];
+//   messages: Map<string, Message[]>;
+//   createThread: (params: CreateThreadParams) => string;
+//   markAsRead: (threadId: string) => void;
+//   createMessage: (params: CreateMessageParams) => void;
+//   openDesktopSidebar: boolean;
+//   setOpenDesktopSidebar: React.Dispatch<React.SetStateAction<boolean>>;
+//   openMobileSidebar: boolean;
+//   setOpenMobileSidebar: React.Dispatch<React.SetStateAction<boolean>>;
+// }
+
+// export const ChatContext = React.createContext<ChatContextValue>({
+//   contacts: [],
+//   threads: [],
+//   messages: new Map(),
+//   createThread: noop as () => string,
+//   markAsRead: noop,
+//   createMessage: noop,
+//   openDesktopSidebar: true,
+//   setOpenDesktopSidebar: noop,
+//   openMobileSidebar: true,
+//   setOpenMobileSidebar: noop,
+// });
+
+// export interface ChatProviderProps {
+//   children: React.ReactNode;
+//   contacts: Contact[];
+//   threads: Thread[];
+//   messages: Message[];
+// }
+
+// export function ChatProvider({
+//   children,
+//   contacts: initialContacts = [],
+//   threads: initialThreads = [],
+//   messages: initialMessages = [],
+// }: ChatProviderProps): React.JSX.Element {
+//   const [contacts, setContacts] = React.useState<Contact[]>([]);
+//   const [threads, setThreads] = React.useState<Thread[]>([]);
+//   const [messageMap, setMessageMap] = React.useState<Map<string, Message[]>>(new Map());
+
+//   const [openDesktopSidebar, setOpenDesktopSidebar] = React.useState<boolean>(true);
+//   const [openMobileSidebar, setOpenMobileSidebar] = React.useState<boolean>(false);
+
+//   React.useEffect(() => {
+//     setContacts(initialContacts);
+//   }, [initialContacts]);
+
+//   React.useEffect(() => {
+//     setThreads(initialThreads);
+//   }, [initialThreads]);
+
+//   React.useEffect(() => {
+//     const newMap = new Map<string, Message[]>();
+//     initialMessages.forEach((msg) => {
+//       if (!newMap.has(msg.threadId)) {
+//         newMap.set(msg.threadId, []);
+//       }
+//       newMap.get(msg.threadId)?.push(msg);
+//     });
+//     setMessageMap(newMap);
+//   }, [initialMessages]);
+
+//   // Example placeholder for createThread and markAsRead
+//   const createThread = React.useCallback((params: CreateThreadParams): string => {
+//     // ... your logic
+//     return "THREAD_ID";
+//   }, []);
+
+//   const markAsRead = React.useCallback((threadId: string) => {
+//     // ... your logic
+//   }, []);
+
+//   /**
+//    * Creates a new message. If type === "llm", we assign LLM author,
+//    * otherwise the user.
+//    */
+//   let messageCounter = 0;
+
+//   const createMessage = React.useCallback((params: CreateMessageParams): void => {
+//     let author;
+//     if (params.type === "llm") {
+//       // LLM message
+//       author = { id: "LLM-123", name: "OpenAI LLM", avatar: "/assets/robot-avatar.png" };
+//     } else {
+//       // User message
+//       author = { id: "USR-000", name: "Sofia Rivers", avatar: "/assets/avatar.png" };
+//     }
+
+//     const newMessage: Message = {
+//       id: `MSG-${Date.now()}-${messageCounter++}`,
+//       threadId: params.threadId,
+//       type: params.type,
+//       author,
+//       content: params.content,
+//       createdAt: new Date(),
+//       sql: params.sql,
+//       // Include chartData if provided
+//       chartData: params.chartData ?? [],
+//       profile: params.profile,
+//       profileSynth: params.profileSynth
+//     };
+
+//     setMessageMap((prev) => {
+//       const copy = new Map(prev);
+//       const msgs = copy.get(params.threadId) || [];
+//       msgs.push(newMessage);
+//       copy.set(params.threadId, msgs);
+//       return copy;
+//     });
+//   }, []);
+
+//   const value: ChatContextValue = {
+//     contacts,
+//     threads,
+//     messages: messageMap,
+//     createThread,
+//     markAsRead,
+//     createMessage,
+//     openDesktopSidebar,
+//     setOpenDesktopSidebar,
+//     openMobileSidebar,
+//     setOpenMobileSidebar,
+//   };
+
+//   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
+// }
+
 "use client";
 
 import * as React from "react";
+import type { Contact, Message, MessageType, Thread } from "./types";
 
-import type { Contact, Message, MessageType, Participant, Thread } from "./types";
+// A simple no-op function for defaults
+function noop(): void {}
 
-function noop(): void {
-	// No operation
-}
-
-export type CreateThreadParams = { type: "direct"; recipientId: string } | { type: "group"; recipientIds: string[] };
+export type CreateThreadParams =
+  | { type: "direct"; recipientId: string }
+  | { type: "group"; recipientIds: string[] };
 
 export interface CreateMessageParams {
-	threadId: string;
-	type: MessageType;
-	content: string;
+  threadId: string;
+  type: MessageType; // "text" | "image" | "llm"
+  content: string;
+  chartData?: any[];
+  sql?: string;
+  profile?: any;
+  profileSynth?: any;
+  data?: {}; // optional
+  generatedCode?: string;
+  parameterizedSummary?: string;
 }
 
 export interface ChatContextValue {
-	contacts: Contact[];
-	threads: Thread[];
-	messages: Map<string, Message[]>;
-	createThread: (params: CreateThreadParams) => string;
-	markAsRead: (threadId: string) => void;
-	createMessage: (params: CreateMessageParams) => void;
-	openDesktopSidebar: boolean;
-	setOpenDesktopSidebar: React.Dispatch<React.SetStateAction<boolean>>;
-	openMobileSidebar: boolean;
-	setOpenMobileSidebar: React.Dispatch<React.SetStateAction<boolean>>;
+  contacts: Contact[];
+  threads: Thread[];
+  messages: Map<string, Message[]>;
+  createThread: (params: CreateThreadParams) => string;
+  markAsRead: (threadId: string) => void;
+  createMessage: (params: CreateMessageParams) => void;
+  updateMessage: (messageId: string, changes: Partial<Message>) => void;
+  openDesktopSidebar: boolean;
+  setOpenDesktopSidebar: React.Dispatch<React.SetStateAction<boolean>>;
+  openMobileSidebar: boolean;
+  setOpenMobileSidebar: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const ChatContext = React.createContext<ChatContextValue>({
-	contacts: [],
-	threads: [],
-	messages: new Map(),
-	createThread: noop as () => string,
-	markAsRead: noop,
-	createMessage: noop,
-	openDesktopSidebar: true,
-	setOpenDesktopSidebar: noop,
-	openMobileSidebar: true,
-	setOpenMobileSidebar: noop,
+  contacts: [],
+  threads: [],
+  messages: new Map(),
+  createThread: noop as () => string,
+  markAsRead: noop,
+  createMessage: noop,
+  updateMessage: noop,
+  openDesktopSidebar: true,
+  setOpenDesktopSidebar: noop,
+  openMobileSidebar: true,
+  setOpenMobileSidebar: noop,
 });
 
 export interface ChatProviderProps {
-	children: React.ReactNode;
-	contacts: Contact[];
-	threads: Thread[];
-	messages: Message[];
+  children: React.ReactNode;
+  contacts: Contact[];
+  threads: Thread[];
+  messages: Message[];
 }
 
 export function ChatProvider({
-	children,
-	contacts: initialContacts = [],
-	threads: initialLabels = [],
-	messages: initialMessages = [],
+  children,
+  contacts: initialContacts = [],
+  threads: initialThreads = [],
+  messages: initialMessages = [],
 }: ChatProviderProps): React.JSX.Element {
-	const [contacts, setContacts] = React.useState<Contact[]>([]);
-	const [threads, setThreads] = React.useState<Thread[]>([]);
-	const [messages, setMessages] = React.useState<Map<string, Message[]>>(new Map());
-	const [openDesktopSidebar, setOpenDesktopSidebar] = React.useState<boolean>(true);
-	const [openMobileSidebar, setOpenMobileSidebar] = React.useState<boolean>(false);
+  const [contacts, setContacts] = React.useState<Contact[]>([]);
+  const [threads, setThreads] = React.useState<Thread[]>([]);
+  const [messageMap, setMessageMap] = React.useState<Map<string, Message[]>>(new Map());
 
-	React.useEffect((): void => {
-		setContacts(initialContacts);
-	}, [initialContacts]);
+  const [openDesktopSidebar, setOpenDesktopSidebar] = React.useState<boolean>(true);
+  const [openMobileSidebar, setOpenMobileSidebar] = React.useState<boolean>(false);
 
-	React.useEffect((): void => {
-		setThreads(initialLabels);
-	}, [initialLabels]);
+  React.useEffect(() => {
+    setContacts(initialContacts);
+  }, [initialContacts]);
 
-	React.useEffect((): void => {
-		setMessages(
-			initialMessages.reduce((acc, curr) => {
-				const byThread = acc.get(curr.threadId) ?? [];
-				// We unshift the message to ensure the messages are sorted by date
-				byThread.unshift(curr);
-				acc.set(curr.threadId, byThread);
-				return acc;
-			}, new Map<string, Message[]>())
-		);
-	}, [initialMessages]);
+  React.useEffect(() => {
+    setThreads(initialThreads);
+  }, [initialThreads]);
 
-	const handleCreateThread = React.useCallback(
-		(params: CreateThreadParams): string => {
-			// Authenticated user
-			const userId = "USR-000";
+  React.useEffect(() => {
+    // Convert the array of messages into a Map, keyed by threadId
+    const newMap = new Map<string, Message[]>();
+    initialMessages.forEach((msg) => {
+      if (!newMap.has(msg.threadId)) {
+        newMap.set(msg.threadId, []);
+      }
+      newMap.get(msg.threadId)?.push(msg);
+    });
+    setMessageMap(newMap);
+  }, [initialMessages]);
 
-			// Check if the thread already exists
-			let thread = threads.find((thread) => {
-				if (params.type === "direct") {
-					if (thread.type !== "direct") {
-						return false;
-					}
+  // Placeholders for thread creation / marking read
+  const createThread = React.useCallback((params: CreateThreadParams): string => {
+    // ...
+    return "THREAD_ID";
+  }, []);
 
-					return thread.participants
-						.filter((participant) => participant.id !== userId)
-						.find((participant) => participant.id === params.recipientId);
-				}
+  const markAsRead = React.useCallback((threadId: string) => {
+    // ...
+  }, []);
 
-				if (thread.type !== "group") {
-					return false;
-				}
+  let messageCounter = 0;
 
-				const recipientIds = thread.participants
-					.filter((participant) => participant.id !== userId)
-					.map((participant) => participant.id);
+  /**
+   * Add a new message to the thread.
+   */
+  const createMessage = React.useCallback((params: CreateMessageParams): void => {
+    let author;
+    if (params.type === "llm") {
+      author = { id: "LLM-123", name: "OpenAI LLM", avatar: "/assets/robot-avatar.png" };
+    } else {
+      author = { id: "USR-000", name: "Sofia Rivers", avatar: "/assets/avatar.png" };
+    }
 
-				if (params.recipientIds.length !== recipientIds.length) {
-					return false;
-				}
+    const newMessage: Message = {
+      id: `MSG-${Date.now()}-${messageCounter++}`,
+      threadId: params.threadId,
+      type: params.type,
+      author,
+      content: params.content,
+      createdAt: new Date(),
+      sql: params.sql,
+      chartData: params.chartData ?? [],
+      profile: params.profile,
+      profileSynth: params.profileSynth,
+      // new fields
+      generated_code: params.sql || "",
+      parameterizedSummary: params.parameterizedSummary || "",
+    };
 
-				return params.recipientIds.every((recipientId) => recipientIds.includes(recipientId));
-			});
+    setMessageMap((prev) => {
+      const copy = new Map(prev);
+      const msgs = copy.get(params.threadId) || [];
+      msgs.push(newMessage);
+      copy.set(params.threadId, msgs);
+      return copy;
+    });
+  }, []);
 
-			if (thread) {
-				return thread.id;
-			}
+  /**
+   * Update an existing message by ID with partial changes (like new chartData).
+   */
+  const updateMessage = React.useCallback((messageId: string, changes: Partial<Message>) => {
+    setMessageMap((prev) => {
+      const copy = new Map(prev);
 
-			// Create a new thread
+      for (const [threadId, msgs] of copy.entries()) {
+        const index = msgs.findIndex((m) => m.id === messageId);
+        if (index !== -1) {
+          const oldMsg = msgs[index];
+          const updatedMsg = { ...oldMsg, ...changes };
+          const updatedArray = [...msgs];
+          updatedArray[index] = updatedMsg;
+          copy.set(threadId, updatedArray);
+          break;
+        }
+      }
+      return copy;
+    });
+  }, []);
 
-			const participants: Participant[] = [{ id: "USR-000", name: "Sofia Rivers", avatar: "/assets/avatar.png" }];
+  const value: ChatContextValue = {
+    contacts,
+    threads,
+    messages: messageMap,
+    createThread,
+    markAsRead,
+    createMessage,
+    updateMessage,
+    openDesktopSidebar,
+    setOpenDesktopSidebar,
+    openMobileSidebar,
+    setOpenMobileSidebar,
+  };
 
-			if (params.type === "direct") {
-				const contact = contacts.find((contact) => contact.id === params.recipientId);
-
-				if (!contact) {
-					throw new Error(`Contact with id "${params.recipientId}" not found`);
-				}
-
-				participants.push({ id: contact.id, name: contact.name, avatar: contact.avatar });
-			} else {
-				for (const recipientId of params.recipientIds) {
-					const contact = contacts.find((contact) => contact.id === recipientId);
-
-					if (!contact) {
-						throw new Error(`Contact with id "${recipientId}" not found`);
-					}
-
-					participants.push({ id: contact.id, name: contact.name, avatar: contact.avatar });
-				}
-			}
-
-			thread = { id: `TRD-${Date.now()}`, type: params.type, participants, unreadCount: 0 } satisfies Thread;
-
-			// Add it to the threads
-			const updatedThreads = [thread, ...threads];
-
-			// Dispatch threads update
-			setThreads(updatedThreads);
-
-			return thread.id;
-		},
-		[contacts, threads]
-	);
-
-	const handleMarkAsRead = React.useCallback(
-		(threadId: string) => {
-			const thread = threads.find((thread) => thread.id === threadId);
-
-			if (!thread) {
-				// Thread might no longer exist
-				return;
-			}
-
-			const updatedThreads = threads.map((threadToUpdate) => {
-				if (threadToUpdate.id !== threadId) {
-					return threadToUpdate;
-				}
-
-				return { ...threadToUpdate, unreadCount: 0 };
-			});
-
-			// Dispatch threads update
-			setThreads(updatedThreads);
-		},
-		[threads]
-	);
-
-	const handleCreateMessage = React.useCallback(
-		(params: CreateMessageParams): void => {
-			const message = {
-				id: `MSG-${Date.now()}`,
-				threadId: params.threadId,
-				type: params.type,
-				author: { id: "USR-000", name: "Sofia Rivers", avatar: "/assets/avatar.png" },
-				content: params.content,
-				createdAt: new Date(),
-			} satisfies Message;
-
-			const updatedMessages = new Map<string, Message[]>(messages);
-
-			// Add it to the messages
-			if (updatedMessages.has(params.threadId)) {
-				updatedMessages.set(params.threadId, [...updatedMessages.get(params.threadId)!, message]);
-			} else {
-				updatedMessages.set(params.threadId, [message]);
-			}
-
-			// Dispatch messages update
-			setMessages(updatedMessages);
-		},
-		[messages]
-	);
-
-	return (
-		<ChatContext.Provider
-			value={{
-				contacts,
-				threads,
-				messages,
-				createThread: handleCreateThread,
-				markAsRead: handleMarkAsRead,
-				createMessage: handleCreateMessage,
-				openDesktopSidebar,
-				setOpenDesktopSidebar,
-				openMobileSidebar,
-				setOpenMobileSidebar,
-			}}
-		>
-			{children}
-		</ChatContext.Provider>
-	);
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }
+

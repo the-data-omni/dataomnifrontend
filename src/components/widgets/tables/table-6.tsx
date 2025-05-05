@@ -199,7 +199,7 @@ export function Table6() {
       setLoading(true);
 
       // 3) get data
-      const dataResp = await fetch("http://127.0.0.1:8080/scrape", {
+      const dataResp = await fetch("http://127.0.0.1:8080/crawl", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: docUrl }),

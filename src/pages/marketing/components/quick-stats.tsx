@@ -8,7 +8,7 @@ import type { Component } from "@/components/widgets/layout";
 import { QuickStats1 } from "@/components/widgets/quick-stats/quick-stats-1";
 import { QuickStats2 } from "@/components/widgets/quick-stats/quick-stats-2";
 import { QuickStats3 } from "@/components/widgets/quick-stats/quick-stats-3";
-import { QuickStats4 } from "@/components/widgets/quick-stats/quick-stats-4";
+import { QuickStats, GlobalStats } from "@/components/widgets/quick-stats/quick-stats-4";
 import { QuickStats5 } from "@/components/widgets/quick-stats/quick-stats-5";
 import { QuickStats6 } from "@/components/widgets/quick-stats/quick-stats-6";
 import { QuickStats7 } from "@/components/widgets/quick-stats/quick-stats-7";
@@ -23,7 +23,7 @@ const components = [
 	{ title: "Quick stats 1", element: <QuickStats1 /> },
 	{ title: "Quick stats 2", element: <QuickStats2 /> },
 	{ title: "Quick stats 3", element: <QuickStats3 /> },
-	{ title: "Quick stats 4", element: <QuickStats4 /> },
+	// { title: "Quick stats 4", element: <QuickStats globalStats={undefined} /> },
 	{ title: "Quick stats 5", element: <QuickStats5 /> },
 	{ title: "Quick stats 6", element: <QuickStats6 /> },
 	{ title: "Quick stats 7", element: <QuickStats7 /> },

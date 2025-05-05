@@ -1,13 +1,26 @@
-// GlobalQueryDrawer.tsx
 "use client";
 
 import React, { useState } from "react";
-import { Drawer, Box, IconButton, Button, Typography, TextField } from "@mui/material";
+import {
+  Drawer,
+  Box,
+  IconButton,
+  Button,
+  Typography,
+  TextField,
+  Tabs,
+  Tab,
+} from "@mui/material";
 import Editor, { BeforeMount, Monaco } from "@monaco-editor/react";
 import { X as XIcon } from "@phosphor-icons/react";
 import { format } from "sql-formatter";
 
-// The query drawer context
+// *** NEW ***: Import the tab components
+import { ChartTab } from "./ChartTab";
+import { DataTab } from "./DataTab";
+import { SQLTab } from "./SQLTab";
+import { DataFlowTab } from "./DataFlowTab";
+
 import { useQueryDrawer } from "@/components/dashboard/chat/context/query-drawer-context";
 
 /** Parse BigQuery error messages like "Syntax error: ... at [1:19]" to just the relevant portion. */
@@ -22,17 +35,17 @@ function parseBqErrorMessage(rawMsg: string): string {
   return rawMsg;
 }
 
-/**
- * Calls your Flask /api/generate_sql endpoint with userQuestion + existingSql,
- * returning a JSON: { sql: "..."}
- */
+/** Calls your Flask /api/generate_sql endpoint */
 async function askOpenAiForSql(userQuestion: string, existingSql: string) {
-  const response = await fetch("https://schema-scoring-api-242009193450.us-central1.run.app/generate_sql", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userQuestion, existingSql }),
-  });
+  const response = await fetch(
+    "https://schema-scoring-api-242009193450.us-central1.run.app/generate_sql",
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userQuestion, existingSql }),
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`Server error: ${response.statusText}`);
@@ -42,16 +55,16 @@ async function askOpenAiForSql(userQuestion: string, existingSql: string) {
   return data.sql;
 }
 
-/**
- * Calls your /dry_run endpoint to validate SQL, returning
- * { formatted_bytes_processed, message } or throws an error message.
- */
+/** Calls your /dry_run endpoint to validate SQL */
 async function dryRunQuery(sql: string) {
-  const resp = await fetch("https://schema-scoring-api-242009193450.us-central1.run.app/dry_run", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: sql }),
-  });
+  const resp = await fetch(
+    "http://127.0.0.1:8080/dry_run",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: sql }),
+    }
+  );
 
   if (!resp.ok) {
     // We expect some { message: "... } JSON on error
@@ -65,15 +78,40 @@ async function dryRunQuery(sql: string) {
   return data; // { formatted_bytes_processed, message }
 }
 
+/** Calls your "run query" endpoint to actually get rows of data */
+async function runQuery(sql: string) {
+  const resp = await fetch("http://127.0.0.1:8080/run_query", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query: sql }),
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Error running query: ${resp.statusText}`);
+  }
+
+  const data = await resp.json();
+  // data.rows is the array of row objects
+  return data.rows || [];
+}
+
 export function GlobalQueryDrawer() {
   const { open, closeDrawer, sql, setSql } = useQueryDrawer();
   const [userQuestion, setUserQuestion] = useState("");
   const [loading, setLoading] = useState(false);
 
   // For "Validate Query" status:
-  const [testQueryStatus, setTestQueryStatus] = useState<"idle" | "success" | "error">("idle");
+  const [testQueryStatus, setTestQueryStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
   const [testQueryErrorMessage, setTestQueryErrorMessage] = useState("");
   const [dryRunBytes, setDryRunBytes] = useState("");
+
+  // *** NEW ***: store the tab value
+  const [tabValue, setTabValue] = useState(0);
+
+  // *** NEW ***: store the query results to display in Chart/Data
+  const [queryResults, setQueryResults] = useState<any[]>([]);
 
   // Optional auto-formatter for Monaco
   const handleEditorWillMount: BeforeMount = (monaco: Monaco) => {
@@ -95,7 +133,7 @@ export function GlobalQueryDrawer() {
     });
   };
 
-  // Handle "Ask OpenAI" => generates or refines SQL
+  // Generate or refine SQL via OpenAI
   const handleAskOpenAi = async () => {
     setLoading(true);
     try {
@@ -106,15 +144,16 @@ export function GlobalQueryDrawer() {
 
       const newSql = await askOpenAiForSql(userQuestion, sql);
       setSql(newSql);
+      setTabValue(2); // Switch to the SQL tab to see the updated query
     } catch (err) {
-      console.error("Error calling /api/generate_sql:", err);
+      console.error("Error calling /generate_sql:", err);
       alert("Error generating SQL. Check console.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle "Validate Query" => calls /dry_run with current sql
+  // Validate query (dry run)
   const handleTestQuery = async () => {
     try {
       setTestQueryStatus("idle");
@@ -124,12 +163,10 @@ export function GlobalQueryDrawer() {
       const data = await dryRunQuery(sql);
       setTestQueryStatus("success");
       setDryRunBytes(data.formatted_bytes_processed || "");
-    //   alert(data.message || "Dry-run succeeded");
     } catch (error) {
       console.error("Dry run failed:", error);
       setTestQueryStatus("error");
       setTestQueryErrorMessage((error as Error).message);
-    //   alert((error as Error).message || "Error testing query");
     }
   };
 
@@ -143,13 +180,29 @@ export function GlobalQueryDrawer() {
     }
   };
 
+  // *** NEW ***: Run the query for actual data
+  const handleRunQuery = async () => {
+    try {
+      setLoading(true);
+      const rows = await runQuery(sql);
+      setQueryResults(rows);
+      // Switch to the Data tab automatically to show results
+      setTabValue(1);
+    } catch (err) {
+      console.error("Error running query:", err);
+      alert("Error running query. Check console.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Drawer
       anchor="right"
       open={open}
       onClose={closeDrawer}
       PaperProps={{
-        sx: { width: 500, p: 2, display: "flex", flexDirection: "column" },
+        sx: { width: 600, p: 2, display: "flex", flexDirection: "column" },
       }}
       variant="temporary"
     >
@@ -165,7 +218,7 @@ export function GlobalQueryDrawer() {
 
       {/* If generating SQL from OpenAI */}
       {loading && (
-        <Typography color="text.secondary">Generating SQL with OpenAI...</Typography>
+        <Typography color="text.secondary">Processing...</Typography>
       )}
 
       {/* Ask a question input */}
@@ -188,23 +241,8 @@ export function GlobalQueryDrawer() {
         </Button>
       </Box>
 
-      {/* The Editor for SQL */}
-      <Box sx={{ flex: 1 }}>
-        <Editor
-          height="100%"
-          defaultLanguage="sql"
-          value={sql}
-          beforeMount={handleEditorWillMount}
-          onChange={handleEditorChange}
-          options={{
-            minimap: { enabled: false },
-            wordWrap: "on",
-          }}
-        />
-      </Box>
-
-      {/* "Validate Query" button + success/error UI */}
-      <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+      {/* Validate Query button + success/error UI */}
+      <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
         <Button
           variant="contained"
           // If test success, show a green button
@@ -223,12 +261,44 @@ export function GlobalQueryDrawer() {
         )}
       </Box>
 
+      {/* TABS: Chart, Data, SQL, Data Flow */}
+      <Tabs
+        value={tabValue}
+        onChange={(_, newValue) => setTabValue(newValue)}
+        variant="fullWidth"  
+        sx={{ mb: 2 }}
+      >
+        <Tab label="Chart" />
+        <Tab label="Data" />
+        <Tab label="SQL" />
+        <Tab label="Data Flow" />
+      </Tabs>
+
+      {/* Tab Content */}
+      <Box sx={{ flex: 1, overflow: "auto" }}>
+        {tabValue === 0 && <ChartTab data={queryResults} />}
+        {tabValue === 1 && <DataTab data={queryResults} />}
+        {tabValue === 2 && (
+          <Box sx={{ height: "400px" }}>
+            <Editor
+              height="100%"
+              defaultLanguage="sql"
+              value={sql}
+              beforeMount={handleEditorWillMount}
+              onChange={handleEditorChange}
+              options={{
+                minimap: { enabled: false },
+                wordWrap: "on",
+              }}
+            />
+          </Box>
+        )}
+        {tabValue === 3 && <DataFlowTab />}
+      </Box>
+
       {/* Footer / Actions */}
       <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 2 }}>
-        <Button
-          variant="contained"
-          onClick={() => alert(`Run query:\n\n${sql}`)}
-        >
+        <Button variant="contained" onClick={handleRunQuery} disabled={loading}>
           Run Query
         </Button>
       </Box>

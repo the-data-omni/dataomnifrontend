@@ -21,13 +21,35 @@ export interface Participant {
 	avatar?: string;
 }
 
-export type MessageType = "text" | "image";
+export type MessageType = "text" | "image" | "llm";
 
+// export interface Message {
+// 	id: string;
+// 	threadId: string;
+// 	type: MessageType;
+// 	content: string;
+// 	author: { id: string; name: string; avatar?: string };
+// 	createdAt: Date;
+
+
+// 	sql?: string;
+
+// }
 export interface Message {
-	id: string;
-	threadId: string;
-	type: MessageType;
-	content: string;
-	author: { id: string; name: string; avatar?: string };
-	createdAt: Date;
+  profileSynth: any;
+  id: string;
+  threadId: string;
+  type: "text" | "image" | "llm";
+  content: string;
+  sql?: string;
+  chartData?: any[]; // <-- add this line
+  createdAt: Date;
+  profile?:any;
+  generated_code?: string;
+  parameterizedSummary?: string;
+  author: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
 }
